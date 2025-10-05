@@ -1,0 +1,41 @@
+alias: Tibber prices update
+sequence:
+  - action: tibber.get_prices
+    data:
+      end: "{{ (now() + timedelta(days=1)).strftime('%Y-%m-%d 23:59:59') }}"
+    response_variable: tibber_response
+  - variables:
+      tibber_prices_raw: "{{ (tibber_response['prices'].values() | list)[0] }}"
+      tibber_prices_today: >
+        {% set today = now().date() %} {% set ns = namespace(list=[]) %} {% for
+        p in tibber_prices_raw %}
+          {% if as_datetime(p.start_time).date() == today %}
+            {% set ns.list = ns.list + [ p.price ] %}
+          {% endif %}
+        {% endfor %} {{ ns.list }}
+      avg_today: |
+        {% if tibber_prices_today | count > 0 %}
+         {% set ns = namespace(rounded=[]) %}
+          {% for v in tibber_prices_today %}
+           {% set x = v | float %}
+           {% if x >= 0 %}
+            {% set r = ((x * 1000 + 0.5) | int) / 1000.0 %}
+           {% else %}
+            {% set r = ((x * 1000 - 0.5) | int) / 1000.0 %}
+           {% endif %}
+          {% set ns.rounded = ns.rounded + [ r ] %}
+         {% endfor %}
+        {{ ((ns.rounded | sum) / (ns.rounded | count)) | round(4) }}
+        {% else %}
+         unknown
+        {% endif %}
+      tibber_prices_mapped: |
+        {% set ns = namespace(list=[]) %} {% for p in tibber_prices_raw %}
+          {% set ns.list = ns.list + [ {"start_time": p.start_time, "price_per_kwh": p.price} ] %}
+        {% endfor %} {{ ns.list }}
+  - data:
+      entity_id: sensor.tibber_prices
+      state: "{{ avg_today }}"
+      prices: "{{ tibber_prices_mapped }}"
+    action: python_script.set_tibber_prices
+mode: single
