@@ -2,14 +2,27 @@
 
 # HA Price Timeline Card
 
-A custom Home Assistant Lovelace card that visualizes **hourly energy prices** on a timeline or circle.  
-Prices are color-coded in relation to the daily average, so you can quickly spot cheap and expensive hours.  
-Supports multiple languages and two different modes and dark&light theme or default theme colors of your current theme:
+A custom Home Assistant Lovelace card that visualizes **hourly energy prices** or **15-minutes energy prices** on a timeline or circle.  
+Prices are color-coded in relation to the daily average, so you can quickly spot cheap and expensive hours or slots.  
+Supports multiple languages and two different modes and dark&light theme or default theme colors of your current theme
+
+---
+
+## 🚀 Features
+Inspired by Tibber, this custom card visualizes **hourly energy prices** on a timeline or circle.
+
+- 📊 Timeline view or circle of today's hourly or 15-minutes electricity prices  
+- 🎨 Color coding above/below daily average  
+- ⏰ Current time highlighted  
+- 🌍 Multi-language support
+- ⚡ Simple configuration
+- 🔄 Double-click to toggle today / tomorrow
+
 
 ### Timeline mode:
 By default, the card shows a **timeline view** of today's electricity prices.  
 Each bar represents one hour of the day, colored **turquoise** if the price is below the daily average and **orange** if above.
-The current hour is highlighted with a marker, while **past hours** are shown faded to provide a quick visual distinction between past and upcoming prices.
+The current time is highlighted with a marker, while **past hours** are shown faded to provide a quick visual distinction between past and upcoming prices.
 A scale below the timeline shows the hours of the day.
 - light
   
@@ -36,17 +49,9 @@ Inside the circle, the current price (in Cent/kWh) and its time range are displa
 
 ![screenshot_dark_circle](./examples/light_circle_slider.png) 
 
+### Data not available:
 
----
-
-## 🚀 Features
-Inspired by Tibber, this custom card visualizes **hourly energy prices** on a timeline or circle.
-
-- 📊 Timeline view or circle of today's hourly electricity prices  
-- 🎨 Color coding above/below daily average  
-- ⏰ Current hour highlighted  
-- 🌍 Multi-language support
-- ⚡ Simple configuration  
+![screenshot_unavailable](./examples/next_day_unavailable.png) 
 
 ---
 
@@ -62,6 +67,84 @@ You can choose between multiple sources:
 - Awattar, SMARD.de, Tibber, ....
 
 The price-timeline-card needs the average price and net price / price sensor.
+
+#### tibber integration (!<u>optionally</u>!)
+Since the Tibber integration does not directly provide a sensor with hourly or quarter-hourly prices, but instead provides an action to get all prices, we can use this with a little extra effort (the HA Epex Spot addon is then not required).
+
+1. Enable python_script integration
+- Open your configuration.yaml
+- Add this entry (if it doesn't already exist):
+```yaml
+python_script:
+```
+- Restart Home Assistant
+- Then check if you have the folder /config/python_scripts/ (if not: create it)
+2. Create a Python script
+- Create the file set_tibber_prices.py in the folder /config/python_scripts/
+```python
+# set_tibber_prices.py
+
+entity_id = data.get("entity_id", "sensor.tibber_prices")
+state_value = data.get("state", "unknown")
+prices_raw = data.get("prices", [])
+
+hass.states.set(
+    entity_id,
+    state_value,
+    {"data": prices_raw}
+)
+```
+3. Create Home Assistant Script
+- Go to Settings → Automations & Scenes → Scripts and create a new script.
+Or directly in YAML (scripts.yaml):
+```yaml
+alias: Tibber prices update
+sequence:
+  - action: tibber.get_prices
+    data:
+      end: "{{ (now() + timedelta(days=1)).strftime('%Y-%m-%d 23:59:59') }}"
+    response_variable: tibber_response
+  - variables:
+      tibber_prices_raw: "{{ (tibber_response['prices'].values() | list)[0] }}"
+      tibber_prices_today: >
+        {% set today = now().date() %} {% set ns = namespace(list=[]) %} {% for
+        p in tibber_prices_raw %}
+          {% if as_datetime(p.start_time).date() == today %}
+            {% set ns.list = ns.list + [ p.price ] %}
+          {% endif %}
+        {% endfor %} {{ ns.list }}
+      avg_today: |
+        {% if tibber_prices_today | count > 0 %}
+          {{ (tibber_prices_today | sum / tibber_prices_today | count) | round(2) }}
+        {% else %}
+          unknown
+        {% endif %}
+      tibber_prices_mapped: |
+        {% set ns = namespace(list=[]) %} {% for p in tibber_prices_raw %}
+          {% set ns.list = ns.list + [ {"start_time": p.start_time, "price_per_kwh": p.price} ] %}
+        {% endfor %} {{ ns.list }}
+  - data:
+      entity_id: sensor.tibber_prices
+      state: "{{ avg_today }}"
+      prices: "{{ tibber_prices_mapped }}"
+    action: python_script.set_tibber_prices
+mode: single
+```
+4. Run script
+- Go to Home Assistant → Scripts → Tibber prices update → Run
+- After that, the sensor sensor.tibber_prices exists (You can also rename this in the script if you like or if a entity already exists with this name)
+
+After that you should have a sensor `sensor.tibber_prices`.  The state of this sensor is the average today price.
+The attributes of this sensor will also have a data array with all the 15-minutes prices for today and if available for tomorrow.
+
+So you could simple use this card then with
+```yaml
+price: sensor.tibber_prices
+timeline: true
+theme: light
+type: custom:price-timeline-card
+```
+To ensure that you always have fresh data, you can create an automation that calls the script regularly and at home assistant startup (otherwise the sensor is not available maybe).
 
 ### HACS
 #### Community Store
@@ -92,12 +175,32 @@ Here are the available parameters for this Lovelace card.
 
 | Name       | Type   | Description |
 |------------|--------|-------------|
-| `price`   | string | Entity ID of the energy price sensor (must provide `attributes.data` with hourly prices). |
-| `average` | string | Entity ID of the sensor that provides the daily average price. |
+| `price`   | string | Entity ID of the energy price sensor (must provide `attributes.data` with hourly or 15-minutes prices). |
+
+
+
+> **Note:** The `attributes.data` of the `price` sensor must be an array of objects, each containing at least the following keys:
+> 
+> - `start_time`: ISO 8601 timestamp of the interval start
+> - `price_per_kwh`: price in €/kWh
+> 
+> Example:
+> 
+> ```yaml
+> data:
+>   - start_time: "2025-10-05T00:00:00.000+02:00"
+>     price_per_kwh: 0.209
+>   - start_time: "2025-10-05T00:15:00.000+02:00"
+>     price_per_kwh: 0.2087
+>   - start_time: "2025-10-05T00:30:00.000+02:00"
+> ```
+> This format is automatically provided when using the Tibber script above or the `ha_epex_spot` addon.
+
 
 ### Optional
 | Name       | Type    | Default | Description |
 |------------|---------|---------|-------------|
+| `average` | string or number |   `undefined`  | A fix value for average (e.g. 0.25) you want to compare. Or you could pass a Entity ID of the sensor that provides the average price. If you don`t use this average parameter, the card calculates the average itself |
 | `timeline` | boolean | `true`  | Show timeline view (`true`) or circle view (`false`). |
 | `theme`    | string  | `light` | Visual theme. Possible values: `light`, `dark`, `theme` (uses Home Assistant theme variables). |
 | `slider`    | boolean  | `false` | (ONLY for circle view) Show slider to change time for current day |
@@ -114,7 +217,6 @@ timeline view and light theme (default):
 ```yaml
 type: custom:price-timeline-card
 price: sensor.epex_price
-average: sensor.epex_average_price
 ```
 ![timeline light](./examples/light_timeline.png)
 
@@ -122,7 +224,6 @@ circle view and dark theme:
 ```yaml
 type: custom:price-timeline-card
 price: sensor.epex_price
-average: sensor.epex_average_price
 theme: dark
 timeline: false
 ```
@@ -132,7 +233,6 @@ circle view with slider:
 ```yaml
 type: custom:price-timeline-card
 price: sensor.epex_price
-average: sensor.epex_average_price
 timeline: false
 slider: true
 ```
