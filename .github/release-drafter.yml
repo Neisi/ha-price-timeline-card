@@ -17,6 +17,6 @@ change-template: "- $TITLE (#$NUMBER)"
 template: |
   ## 📦 Release $RESOLVED_VERSION
 
-  ### Änderungen seit dem letzten Release
-
+  
+  ## Changes
   $CHANGES
