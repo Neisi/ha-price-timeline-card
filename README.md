@@ -241,7 +241,7 @@ slider: true
 
 circle view with slider and custom currency:
 ```yaml
-type: custom:price-timeline-card-
+type: custom:price-timeline-card
 price: sensor.epex_price
 timeline: false
 theme: light
