@@ -21,4 +21,6 @@ export default {
   editor_start_view_label: "Start-Ansicht",
   editor_start_view_desc: "Ansicht welche standardmäßig angezeigt werden soll",
   editor_view_mode_label: "Ansicht-Modus",
+  editor_currency_label: "Währung",
+  editor_currency_desc: "Eigene Währung angeben",
 };

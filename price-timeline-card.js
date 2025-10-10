@@ -421,6 +421,24 @@ class PriceTimelineCard extends LitElement {
     
       return { min, max };
     }
+    
+    _getCurrency(lang = this.hass?.language || "en") {
+    //default =cent
+      const defaultCurrency = {
+        name: localize("unit_cent", lang), 
+        symbol: "¢",
+      };
+    
+     const cur = this.config.currency;
+     if (cur && (cur.name?.trim() || cur.symbol?.trim())) {
+            return {
+                name: cur.name?.trim() || defaultCurrency.name,
+                symbol: cur.symbol?.trim() || defaultCurrency.symbol,
+            };
+      }
+    
+      return defaultCurrency;
+    }
 
 
     //CIRCLE
@@ -449,7 +467,7 @@ class PriceTimelineCard extends LitElement {
                 <div class="circle-text">
                     <div class="price">
                         <span class="value">${formattedPrice}</span>
-                        <span class="unit">${localize("unit_cent", lang)}</span>
+                        <span class="unit">${this._getCurrency(lang).name}</span>
                     </div>
                     <div class="time">${timeLabel}</div>
                 </div>
@@ -494,7 +512,7 @@ class PriceTimelineCard extends LitElement {
                     <div class="time">${timeLabel}</div>
                     <div class="price">
                         <span class="value">${formattedPriceTL}</span>
-                        <span class="unit">${localize("unit_cent", lang)}</span>
+                        <span class="unit">${this._getCurrency(lang).name}</span>
                     </div>
                 </div>
                 <div class="label">${this._dayOffset === 0 ? localize("label_today_price", lang) : localize("label_tomorrow_price", lang)}</div>
@@ -636,8 +654,9 @@ class PriceTimelineEditor extends LitElement {
        }
      
        delete newConfig.view_mode; 
-     
+
        this._config = newConfig;
+
        this.dispatchEvent(
          new CustomEvent("config-changed", {
            detail: { config: this._config },
@@ -646,6 +665,7 @@ class PriceTimelineEditor extends LitElement {
          })
        );
     }
+    
     
     render() {
       if (!this._config) return html``;
@@ -694,11 +714,26 @@ class PriceTimelineEditor extends LitElement {
             },
           },
         },
+        {
+            name: "currency",
+            selector: {
+              object: {
+                properties: {
+                  name: { selector: { text: {} } },
+                  symbol: { selector: { text: {} } },
+                }
+              }
+            }
+      },
       ];
     
       const data = {
         ...this._config,
         view_mode: mode, 
+        currency: {
+            name: this._config?.currency?.name || "",
+            symbol: this._config?.currency?.symbol || "",
+         },
       };
     
       return html`

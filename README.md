@@ -205,7 +205,7 @@ Here are the available parameters for this Lovelace card.
 | `theme`    | string  | `light` | Visual theme. Possible values: `light`, `dark`, `theme` (uses Home Assistant theme variables). |
 | `slider`    | boolean  | `false` | (ONLY for circle view) Show slider to change time for current day |
 | `start_view`    | string  | `today` | Determines which view is shown by default when the card loads. Possible values: `today`, `tomorrow` |
-
+| `currency` | object | `{ name: "Cent", symbol: "¢" }` | Defines how the unit for energy price is displayed. Use this to customize the currency subunit (e.g., "Cent", "Öre", ...). The `name` is shown as text label. The `symbol` field is currently optional and not yet displayed in all views, but **it is recommended to set it** since it may be used by future features or visualizations. |
 ---
 
 ### 📘 Configuration
@@ -238,6 +238,19 @@ timeline: false
 slider: true
 ```
 ![Visual Editor](./examples/light_circle_slider.png)
+
+circle view with slider and custom currency:
+```yaml
+type: custom:price-timeline-card-
+price: sensor.epex_price
+timeline: false
+theme: light
+slider: true
+currency:
+  name: Öre
+  symbol: öre
+```
+![Visual Editor](./examples/currency.png)
 
 #### Configuration with Visual Editor
 
