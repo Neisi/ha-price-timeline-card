@@ -119,6 +119,7 @@ class PriceTimelineCard extends LitElement {
               border-radius:5px;
               overflow:visible;
               position:relative;
+              z-index: 0;
             }
             .slot {
               flex:1;
@@ -137,7 +138,7 @@ class PriceTimelineCard extends LitElement {
               border:2px solid var(--card-bg);
               border-radius:10px;
               box-shadow:0 0 4px rgba(0,0,0,0.3);
-              z-index:10;
+              z-index:1;
             }
             .faded {
               opacity:0.3;
@@ -270,6 +271,13 @@ class PriceTimelineCard extends LitElement {
         this.config = config;
         this.theme = config.theme || "light";
         this.selectedIndex = undefined;
+        switch (config.start_view) {
+            case "tomorrow":
+              this._dayOffset = 1;
+              break;
+            default:
+              this._dayOffset = 0; 
+          }
     }
 
     _onSliderChange(ev) {
@@ -340,6 +348,9 @@ class PriceTimelineCard extends LitElement {
     
     _getDataForOffset(entity, offset = 0) {
         const allData = entity?.attributes?.data || [];
+        if (offset === -1){
+            return allData;
+        }
         const date = new Date();
         date.setDate(date.getDate() + offset);
         return allData.filter(item => {
@@ -372,27 +383,27 @@ class PriceTimelineCard extends LitElement {
     _renderNoAttributes(lang) {
         return html`<div>${localize("no_data_attributes", lang)}</div>`;
     }
-    
-    _calculateAveragePrice(data) {
-      if (!Array.isArray(data) || data.length === 0) {
-         return NaN;
-      }
-      const round3 = (x) => {
-        if (x >= 0) {
-         return Math.floor(x * 1000 + 0.5) / 1000;
-        } else {
-         return Math.ceil(x * 1000 - 0.5) / 1000;
-        }
-      };
-  
-      const rounded = data.map(item => round3(item.price_per_kwh));
 
-      const sum = rounded.reduce((a, b) => a + b, 0);
-      const avg = sum / rounded.length;
+   _calculateAveragePrice(data) {
+      if (!data || data.length === 0) return 0;
 
-      return Math.round(avg * 10000) / 10000;
+       const centsRounded = data.map(item => {
+          const centValue = item.price_per_kwh * 100;
+          return Math.round(centValue * 10) / 10; // auf 1 Nachkommastelle
+       }); 
+
+       const sum = centsRounded.reduce((acc, val) => acc + val, 0);
+       const average = sum / centsRounded.length;
+
+        const rounded = Math.round(average);
+
+        return rounded / 100;
+    }
+
+   _roundCent(price_per_kwh){
+       return (Math.round(Math.round(price_per_kwh * 100 * 10) / 10) / 100);
    }
-   
+  
     _getPriceRange(data) {
       if (!data || data.length === 0) {
         return { min: undefined, max: undefined };
@@ -415,8 +426,9 @@ class PriceTimelineCard extends LitElement {
     //CIRCLE
     _renderCircle(data, currentIndex, avg, lang) {
         const currentData = data[currentIndex];
-        const currentPrice = currentData.price_per_kwh;
+        let currentPrice = currentData.price_per_kwh;
         const formattedPrice = (currentPrice * 100).toFixed(0);
+        currentPrice = this._roundCent(currentPrice);
         const radius = 65;
         const minPrice = Math.min(...data.map(d => d.price_per_kwh));
         const maxPrice = Math.max(...data.map(d => d.price_per_kwh));
@@ -489,12 +501,12 @@ class PriceTimelineCard extends LitElement {
             </div>
             <div class="timeline">
                 ${data.map((d, i) => {
-                    const color = d.price_per_kwh > avg ? "var(--orange)" : "var(--turquoise)";
+                    const color = this._roundCent(d.price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)";
                     const faded = i < currentIndex ? "faded" : "";
                     //for next day (dayOffset!=0), disable marker
                     const marker = (i === currentIndex && this._dayOffset === 0) ? "marker" : "";
-                    const prevColor = i > 0 ? (data[i - 1].price_per_kwh > avg ? "var(--orange)" : "var(--turquoise)") : null;
-                    const nextColor = i < data.length - 1 ? (data[i + 1].price_per_kwh > avg ? "var(--orange)" : "var(--turquoise)") : null;
+                    const prevColor = i > 0 ? (this._roundCent(data[i - 1].price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)") : null;
+                    const nextColor = i < data.length - 1 ? (this._roundCent(data[i + 1].price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)") : null;
                     let borderRadius = "";
                     if (prevColor !== color) borderRadius += "border-top-left-radius:10px; border-bottom-left-radius:10px;";
                     if (nextColor !== color) borderRadius += "border-top-right-radius:10px; border-bottom-right-radius:10px;";
@@ -523,7 +535,7 @@ class PriceTimelineCard extends LitElement {
         this._applyTheme();
 
         const entity = this._hass.states[this.config.price];
-        
+
         //read average parameter
         let avg = undefined;
         const avgTemp = this.config.average;
@@ -537,12 +549,13 @@ class PriceTimelineCard extends LitElement {
         if (!entity || !entity.attributes?.data) {
             return html`<ha-card>${this._renderNoAttributes(lang)}</ha-card>`;
         }
-        
-        const data = this._getDataForOffset(entity, this._dayOffset);
+        let offset = (this._dayOffset===2)?-1:this._dayOffset;
+        const data = this._getDataForOffset(entity, offset);
         //calculate average
         if (avg === undefined) {
           avg = this._calculateAveragePrice(data);
         }
+        
 
         // no data
         if (!data.length) {
@@ -560,7 +573,7 @@ class PriceTimelineCard extends LitElement {
         const cardContent = this.config.timeline === false
         ? this._renderCircle(data, currentIndex, avg, lang)
         : this._renderTimeline(data, currentIndex, avg, lang);
-
+        
         return html`
             <ha-card>
                 <div>
@@ -601,72 +614,125 @@ class PriceTimelineEditor extends LitElement {
         this._hass = hass;
     }
 
+    
     _valueChanged(ev) {
-        if (!this._config || !this._hass) return;
-        const newConfig = { ...ev.detail.value };
-        this._config = newConfig;
-        this.dispatchEvent(
-            new CustomEvent("config-changed", {
-                detail: { config: this._config },
-                bubbles: true,
-                composed: true,
-            })
-        );
+       if (!this._config || !this._hass) return;
+       const newData = ev.detail.value;
+       const newConfig = { ...this._config, ...newData };
+     
+       switch (newData.view_mode) {
+         case "timeline":
+           newConfig.timeline = true;
+           newConfig.slider = false;
+           break;
+         case "circle":
+           newConfig.timeline = false;
+           newConfig.slider = false;
+           break;
+         case "circle_slider":
+           newConfig.timeline = false;
+           newConfig.slider = true;
+           break;
+       }
+     
+       delete newConfig.view_mode; 
+     
+       this._config = newConfig;
+       this.dispatchEvent(
+         new CustomEvent("config-changed", {
+           detail: { config: this._config },
+           bubbles: true,
+           composed: true,
+         })
+       );
+    }
+    
+    render() {
+      if (!this._config) return html``;
+      const lang = this._hass?.language || "en";
+    
+      let mode = "timeline";
+      if (this._config.timeline === false && this._config.slider) mode = "circle_slider";
+      else if (this._config.timeline === false) mode = "circle";
+    
+      const schema = [
+        { name: "price", selector: { entity: { domain: "sensor" } } },
+        { name: "average", selector: { number: { min: 0, max: 2, step: 0.001, mode: "box" } } },
+        {
+          name: "view_mode",
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: [
+                { value: "timeline", label: "Timeline" },
+                { value: "circle", label: "Circle" },
+                { value: "circle_slider", label: "Circle + Slider" },
+              ],
+            },
+          },
+        },
+        {
+          name: "start_view",
+          selector: {
+            select: {
+              options: [
+                { value: "today", label: localize("editor_start_today", lang) },
+                { value: "tomorrow", label: localize("editor_start_tomorrow", lang) },
+              ],
+            },
+          },
+        },
+        {
+          name: "theme",
+          selector: {
+            select: {
+              options: [
+                { value: "light", label: localize("editor_theme_light", lang) },
+                { value: "dark", label: localize("editor_theme_dark", lang) },
+                { value: "theme", label: localize("editor_theme_system", lang) },
+              ],
+            },
+          },
+        },
+      ];
+    
+      const data = {
+        ...this._config,
+        view_mode: mode, 
+      };
+    
+      return html`
+        <ha-form
+          .hass=${this._hass}
+          .data=${data}
+          .schema=${schema}
+          .computeLabel=${this._computeLabel.bind(this)}
+          .computeHelper=${this._computeHelper.bind(this)}
+          @value-changed=${this._valueChanged}
+        ></ha-form>
+      `;
     }
 
-    render() {
-        if (!this._config) return html``;
-        const lang = this._hass?.language || "en";
-        const schema = [
-            { name: "price", selector: { entity: {domain: "sensor"} } },
-            { name: "average", selector: {number: {min: 0, max: 2, step: 0.001, mode: "box"} }},
-            { name: "timeline", selector: { boolean: {} } },
-            { name: "slider", selector: { boolean: {} } },
-            {
-                name: "theme",
-                selector: {
-                    select: {
-                        options: [
-                            { value: "light", label: localize("editor_theme_light", lang) },
-                            { value: "dark", label: localize("editor_theme_dark", lang) },
-                            { value: "theme", label: localize("editor_theme_system", lang) },
-                        ],
-                    },
-                },
-            },
-        ];
- return html`
-    <ha-form
-      .hass=${this._hass}
-      .data=${this._config}
-      .schema=${schema}
-      .computeLabel=${this._computeLabel.bind(this)}
-      .computeHelper=${this._computeHelper.bind(this)}
-      @value-changed=${this._valueChanged}
-    ></ha-form>
-  `;
-}
 
+    _computeLabel(schemaEntry) {
+      const lang = this._hass?.language || "en";
+      const key = schemaEntry.name;
+      const text = localize(`editor_${key}_label`, lang);
+    
+      if (!text || text.startsWith("editor_")) {
+        return key.charAt(0).toUpperCase() + key.slice(1);
+      }
+      return text;
+    }
 
-_computeLabel(schemaEntry) {
-  const lang = this._hass?.language || "en";
-  const key = schemaEntry.name;
-  const text = localize(`editor_${key}_label`, lang);
-
-  if (!text || text.startsWith("editor_")) {
-    return key.charAt(0).toUpperCase() + key.slice(1);
-  }
-  return text;
-}
-
-_computeHelper(schemaEntry) {
-  const lang = this._hass?.language || "en";
-  const key = schemaEntry.name;
-  const text = localize(`editor_${key}_desc`, lang);
-
-  if (!text || text.startsWith("editor_")) return "";
-  return text;
-}
+    _computeHelper(schemaEntry) {
+      const lang = this._hass?.language || "en";
+      const key = schemaEntry.name;
+      const text = localize(`editor_${key}_desc`, lang);
+    
+      if (!text || text.startsWith("editor_")) return "";
+      return text;
+    }
 
 }
 

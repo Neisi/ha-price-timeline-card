@@ -16,4 +16,9 @@ export default {
   editor_average_desc: "Zahl in Euro (z.B. 0.225), die den Durchschnitts-Preis angibt (optional)",
   editor_theme_label: "Thema",
   editor_theme_desc: "Darstellungsmodus der Karte.",
+  editor_start_today: "Heute",
+  editor_start_tomorrow: "Morgen",
+  editor_start_view_label: "Start-Ansicht",
+  editor_start_view_desc: "Ansicht welche standardmäßig angezeigt werden soll",
+  editor_view_mode_label: "Ansicht-Modus",
 };
