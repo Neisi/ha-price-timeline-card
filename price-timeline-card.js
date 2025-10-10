@@ -37,7 +37,7 @@ class PriceTimelineCard extends LitElement {
     
     firstUpdated() {
         this.addEventListener('dblclick', () => {
-            this._dayOffset = (this._dayOffset + 1) % 3;
+            this._dayOffset = this._dayOffset === 0 ? 1 : 0;
             this.requestUpdate();
         });
     }
