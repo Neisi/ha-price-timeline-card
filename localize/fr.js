@@ -16,4 +16,9 @@ export default {
   editor_average_desc: "Nombre en euros (ex. 0,225) qui indique le prix moyen (optionnel)",
   editor_theme_label: "Thème",
   editor_theme_desc: "Mode d’affichage de la carte.",
+  editor_start_today: "Aujourd’hui",
+  editor_start_tomorrow: "Demain",
+  editor_start_view_label: "Vue de démarrage",
+  editor_start_view_desc: "Vue à afficher par défaut",
+  editor_view_mode_label: "Mode d’affichage",
 };

@@ -16,4 +16,9 @@ export default {
   editor_average_desc: "Número en euros (p. ej., 0.225) que representa el precio promedio (opcional)",
   editor_theme_label: "Tema",
   editor_theme_desc: "Modo de visualización de la tarjeta.",
+  editor_start_today: "Hoy",
+  editor_start_tomorrow: "Mañana",
+  editor_start_view_label: "Vista inicial",
+  editor_start_view_desc: "Vista que se mostrará por defecto",
+  editor_view_mode_label: "Modo de vista",
 };

@@ -204,6 +204,7 @@ Here are the available parameters for this Lovelace card.
 | `timeline` | boolean | `true`  | Show timeline view (`true`) or circle view (`false`). |
 | `theme`    | string  | `light` | Visual theme. Possible values: `light`, `dark`, `theme` (uses Home Assistant theme variables). |
 | `slider`    | boolean  | `false` | (ONLY for circle view) Show slider to change time for current day |
+| `start_view`    | string  | `today` | Determines which view is shown by default when the card loads. Possible values: `today`, `tomorrow` |
 
 ---
 
