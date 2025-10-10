@@ -21,4 +21,6 @@ export default {
   editor_start_view_label: "Vue de démarrage",
   editor_start_view_desc: "Vue à afficher par défaut",
   editor_view_mode_label: "Mode d’affichage",
+  editor_currency_label: "Monnaie",
+  editor_currency_desc: "Indiquez une devise personnalisée",
 };
