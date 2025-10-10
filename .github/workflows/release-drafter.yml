@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '.github/**'
   pull_request:
     types: [opened, reopened, synchronize, closed, labeled, unlabeled]
-
+    paths-ignore:
+      - '.github/**'
+      
 permissions:
   contents: write
   pull-requests: read
