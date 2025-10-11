@@ -1,6 +1,12 @@
+<div style="width: 100%; background-color: #0e1825; text-align: center; margin-bottom: 20px; padding: 20px 0;">
+  <img src="./assets/banner_optimized.png" alt="HA Price Timeline Card banner" style="max-width: 100%; max-height: 200px; height: auto;">
+</div>
+
+
+
 [![hacs][hacs-default]][hacs-default-link] [![hacs][hacs-validate]][hacs-validate-link]
 
-# HA Price Timeline Card
+#  <img src="./assets/icon_optimized.png" width="40" height="40"> HA Price Timeline Card
 
 A custom Home Assistant Lovelace card that visualizes **hourly energy prices** or **15-minutes energy prices** on a timeline or circle.  
 Prices are color-coded in relation to the daily average, so you can quickly spot cheap and expensive hours or slots.  
@@ -26,11 +32,11 @@ The current time is highlighted with a marker, while **past hours** are shown fa
 A scale below the timeline shows the hours of the day.
 - light
   
-![screenshot_light_timeline](./examples/light_timeline.png) 
+![screenshot_light_timeline](./assets/examples/light_timeline.png) 
 
 - dark
 
-![screenshot_dark_timeline](./examples/dark_timeline.png) 
+![screenshot_dark_timeline](./assets/examples/dark_timeline.png) 
   
 ### Circle mode:
 If `timeline: false` is set, the card switches to a **circle view**.  
@@ -39,19 +45,19 @@ Inside the circle, the current price (in Cent/kWh) and its time range are displa
 
 - light
 
-![screenshot_light_circle](./examples/light_circle.png) 
+![screenshot_light_circle](./assets/examples/light_circle.png) 
 
 - dark
   
-![screenshot_dark_circle](./examples/dark_circle.png) 
+![screenshot_dark_circle](./assets/examples/dark_circle.png) 
 
 - with time slider
 
-![screenshot_dark_circle](./examples/light_circle_slider.png) 
+![screenshot_dark_circle](./assets/examples/light_circle_slider.png) 
 
 ### Data not available:
 
-![screenshot_unavailable](./examples/next_day_unavailable.png) 
+![screenshot_unavailable](./assets/examples/next_day_unavailable.png) 
 
 ---
 
@@ -219,7 +225,7 @@ timeline view and light theme (default):
 type: custom:price-timeline-card
 price: sensor.epex_price
 ```
-![timeline light](./examples/light_timeline.png)
+![timeline light](./assets/examples/light_timeline.png)
 
 circle view and dark theme:
 ```yaml
@@ -228,7 +234,7 @@ price: sensor.epex_price
 theme: dark
 timeline: false
 ```
-![Visual Editor](./examples/dark_circle.png)
+![Visual Editor](./assets/examples/dark_circle.png)
 
 circle view with slider:
 ```yaml
@@ -237,7 +243,7 @@ price: sensor.epex_price
 timeline: false
 slider: true
 ```
-![Visual Editor](./examples/light_circle_slider.png)
+![Visual Editor](./assets/examples/light_circle_slider.png)
 
 circle view with slider and custom currency:
 ```yaml
@@ -250,13 +256,13 @@ currency:
   name: Öre
   symbol: öre
 ```
-![Visual Editor](./examples/currency.png)
+![Visual Editor](./assets/examples/currency.png)
 
 #### Configuration with Visual Editor
 
 The configuration can also be done using the built-in form editor (visual editor).
 
-![Visual Editor](./examples/editor.png)
+![Visual Editor](./assets/examples/editor.png)
 
 <!--BADGES-->
 [hacs-default]: https://img.shields.io/badge/HACS-Default-blue?style=flat&logo=homeassistantcommunitystore&logoSize=auto
