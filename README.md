@@ -8,21 +8,21 @@
 
 #  <img src="./assets/icon_optimized.png" width="40" height="40"> HA Price Timeline Card
 
-A custom Home Assistant Lovelace card that visualizes **hourly energy prices** or **15-minutes energy prices** on a timeline or circle.  
+A custom Home Assistant Lovelace card that visualizes **hourly energy prices** or **15-minutes energy prices** on a timeline , circle or graph.  
 Prices are color-coded in relation to the daily average, so you can quickly spot cheap and expensive hours or slots.  
-Supports multiple languages and two different modes and dark&light theme or default theme colors of your current theme
+Supports multiple languages and three different modes and dark&light theme or default theme colors of your current theme
 
 ---
 
 ## 🚀 Features
 Inspired by Tibber, this custom card visualizes **hourly energy prices** on a timeline or circle.
 
-- 📊 Timeline view or circle of today's hourly or 15-minutes electricity prices  
+- 📊 Timeline view , circle view or graph view of today's hourly or 15-minutes electricity prices  
 - 🎨 Color coding above/below daily average  
 - ⏰ Current time highlighted  
 - 🌍 Multi-language support
 - ⚡ Simple configuration
-- 🔄 Double-click to toggle today / tomorrow
+- 🔄 toggle today / tomorrow
 
 
 ### Timeline mode:
@@ -30,6 +30,8 @@ By default, the card shows a **timeline view** of today's electricity prices.
 Each bar represents one hour of the day, colored **turquoise** if the price is below the daily average and **orange** if above.
 The current time is highlighted with a marker, while **past hours** are shown faded to provide a quick visual distinction between past and upcoming prices.
 A scale below the timeline shows the hours of the day.
+With the optional parameters (see below), you can enable either a time adjustment slider or a toggle switch to switch between today and tomorrow views.
+
 - light
   
 ![screenshot_light_timeline](./assets/examples/light_timeline.png) 
@@ -37,9 +39,22 @@ A scale below the timeline shows the hours of the day.
 - dark
 
 ![screenshot_dark_timeline](./assets/examples/dark_timeline.png) 
+
+- with day toggler
+
+![screenshot_light_timeline_toggler](./assets/examples/light_timeline_day_toggler.png) 
+
+- with day toggler and slider
+
+![screenshot_light_timeline_toggler_slider](./assets/examples/light_timeline_both.png) 
+
+- with time slider
+
+![screenshot_light_timeline_slider](./assets/examples/light_timeline_slider.png) 
+
   
 ### Circle mode:
-If `timeline: false` is set, the card switches to a **circle view**.  
+If `view: circle` is set, the card switches to a **circle view**.  
 The colored ring shows the current price in relation to the minimum and maximum of the day.  
 Inside the circle, the current price (in Cent/kWh) and its time range are displayed.
 
@@ -53,9 +68,30 @@ Inside the circle, the current price (in Cent/kWh) and its time range are displa
 
 - with time slider
 
-![screenshot_dark_circle](./assets/examples/light_circle_slider.png) 
+![screenshot_light_circle_slider](./assets/examples/light_circle_slider.png) 
+
+- with day toggler 
+
+![screenshot_light_circle_toggler](./assets/examples/light_circle_toggler.png) 
+
+
+### Graph mode:
+If `view: graph` is set, the card switches to a **graph view**.  
+A maximum of two days is displayed (if corresponding data is available). Depending on the date/time and data availability, the graph will either show yesterday on the left and today on the right, or today on the left and tomorrow on the right. If data is available for only one day, the graph will display that single day accordingly. For each day, the minimum and maximum prices are visualized, along with the current time (“now”). The average price and the current hourly price are shown at the top.
+In graph mode you can only activate the slider option.
+
+- today & tomorrow
+
+![screenshot_light_graph](./assets/examples/light_graph.png) 
+
+- today & tomorrow with slider
+
+![screenshot_light_graph_slider](./assets/examples/light_graph_slider.png) 
+
 
 ### Data not available:
+
+When no data is available (or old data) - the no data screen will be shown.
 
 ![screenshot_unavailable](./assets/examples/next_day_unavailable.png) 
 
@@ -207,9 +243,10 @@ Here are the available parameters for this Lovelace card.
 | Name       | Type    | Default | Description |
 |------------|---------|---------|-------------|
 | `average` | string or number |   `undefined`  | A fix value for average (e.g. 0.25) you want to compare. Or you could pass a Entity ID of the sensor that provides the average price. If you don`t use this average parameter, the card calculates the average itself |
-| `timeline` | boolean | `true`  | Show timeline view (`true`) or circle view (`false`). |
+| `view` | string | `timeline`  | Show timeline view (`timeline`) or circle view (`circle`) or graph view (`graph`). |
 | `theme`    | string  | `light` | Visual theme. Possible values: `light`, `dark`, `theme` (uses Home Assistant theme variables). |
-| `slider`    | boolean  | `false` | (ONLY for circle view) Show slider to change time for current day |
+| `slider`    | boolean  | `false` | Show slider to change time for current day and view |
+| `day_switch`    | boolean  | `false` | Show day toggler to change between today and tomorrow (for circle and timeline view only) |
 | `start_view`    | string  | `today` | Determines which view is shown by default when the card loads. Possible values: `today`, `tomorrow` |
 | `currency` | object | `{ name: "Cent", symbol: "¢" }` | Defines how the unit for energy price is displayed. Use this to customize the currency subunit (e.g., "Cent", "Öre", ...). The `name` is shown as text label. The `symbol` field is currently optional and not yet displayed in all views, but **it is recommended to set it** since it may be used by future features or visualizations. |
 ---
@@ -229,18 +266,18 @@ price: sensor.epex_price
 
 circle view and dark theme:
 ```yaml
-type: custom:price-timeline-card
+type: custom:price-timeline-card-test
 price: sensor.epex_price
 theme: dark
-timeline: false
+view: circle
 ```
 ![Visual Editor](./assets/examples/dark_circle.png)
 
 circle view with slider:
 ```yaml
 type: custom:price-timeline-card
-price: sensor.epex_price
-timeline: false
+price: sensor.tibber_prices
+view: circle
 slider: true
 ```
 ![Visual Editor](./assets/examples/light_circle_slider.png)
@@ -248,9 +285,8 @@ slider: true
 circle view with slider and custom currency:
 ```yaml
 type: custom:price-timeline-card
-price: sensor.epex_price
-timeline: false
-theme: light
+price: sensor.tibber_prices
+view: circle
 slider: true
 currency:
   name: Öre
