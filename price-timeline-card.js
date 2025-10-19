@@ -33,7 +33,40 @@ class PriceTimelineCard extends LitElement {
       if (hass === this._hass) return;
       this._hass = hass;
       this._lang = hass?.locale?.language || hass?.language || "en";
-      this.requestUpdate();
+      
+      const oldHass = this._hass;
+      this._hass = hass;
+    
+      const entityId = this.config.entity;
+      const oldState = oldHass?.states?.[entityId]?.state;
+      const newState = hass?.states?.[entityId]?.state;
+    
+      if (oldState !== newState) {
+        this.requestUpdate();
+      }
+    }
+    
+    connectedCallback() {
+      super.connectedCallback();
+    
+      const now = new Date();
+      const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+    
+      setTimeout(() => {
+        this.requestUpdate();
+    
+        this._autoUpdateInterval = setInterval(() => {
+          this.requestUpdate();
+        }, 60_000);
+      }, msToNextMinute);
+    }
+    
+    disconnectedCallback() {
+      super.disconnectedCallback();
+      if (this._autoUpdateInterval) {
+        clearInterval(this._autoUpdateInterval);
+        this._autoUpdateInterval = null;
+      }
     }
     
     updated(changedProps) {

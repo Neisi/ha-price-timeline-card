@@ -110,83 +110,118 @@ You can choose between multiple sources:
 
 The price-timeline-card needs the average price and net price / price sensor.
 
-#### tibber integration (!<u>optionally</u>!)
-Since the Tibber integration does not directly provide a sensor with hourly or quarter-hourly prices, but instead provides an action to get all prices, we can use this with a little extra effort (the HA Epex Spot addon is then not required).
-
-1. Enable python_script integration
+#### Other integrations
+You can also use other data sources/integrations when the data is available. The HA Epex Spot addon is then not required.
+Some integrations already tested successfully.
+For these we need additonal template sensors.
+- Add new template sensor to your `configuration.yaml`
 - Open your configuration.yaml
-- Add this entry (if it doesn't already exist):
+- Add the entry suitable for your integration (see following chapters) to your template section (if already exist, if not, add line `template:`- consider the correct indentation ):
+
+The triggers are only examples and must be adapted accordingly if desired. Depending on the integration and API limits, a sensible update should be made here.
+
+##### tibber integration (!<u>optionally</u>!)
+Since the Tibber integration does not directly provide a sensor with hourly or quarter-hourly prices, but instead provides an action to get all prices, we can use this with a little extra effort.
+Folowing template sensor:
+
 ```yaml
-python_script:
+  - trigger:
+      - trigger: time
+        at: "14:00:00"
+      - trigger: homeassistant
+        event: start
+    action:
+      - action: tibber.get_prices
+        data:
+          end: "{{ (now() + timedelta(days=1)).strftime('%Y-%m-%d 23:59:59') }}"
+        response_variable: tomorrow_price
+    sensor:
+      - name: tibber prices
+        unique_id: tibber_prices
+        state: >
+              {% set key = tomorrow_price['prices'] | list | first %}
+              {% set prices = tomorrow_price['prices'][key] | map(attribute='price') | list %}
+              {{ (prices | sum / prices | count) | round(4) }}
+        attributes:
+          data: >
+            {% set data = namespace(prices=[]) %}
+            {% set key = tomorrow_price['prices'] | list | first %}
+            {% for state in tomorrow_price['prices'][key] %}
+              {% set data.prices = data.prices + [{'start_time': state.start_time, 'price_per_kwh': state.price}] %}
+            {% endfor %}
+            {{ data.prices }}
 ```
-- Restart Home Assistant
-- Then check if you have the folder /config/python_scripts/ (if not: create it)
-2. Create a Python script
-- Create the file set_tibber_prices.py in the folder /config/python_scripts/
-```python
-# set_tibber_prices.py
+After that, the sensor sensor.tibber_prices exists (You can also rename this in the script if you like or if a entity already exists with this name)
 
-entity_id = data.get("entity_id", "sensor.tibber_prices")
-state_value = data.get("state", "unknown")
-prices_raw = data.get("prices", [])
-
-hass.states.set(
-    entity_id,
-    state_value,
-    {"data": prices_raw}
-)
-```
-3. Create Home Assistant Script
-- Go to Settings → Automations & Scenes → Scripts and create a new script.
-Or directly in YAML (scripts.yaml):
-```yaml
-alias: Tibber prices update
-sequence:
-  - action: tibber.get_prices
-    data:
-      end: "{{ (now() + timedelta(days=1)).strftime('%Y-%m-%d 23:59:59') }}"
-    response_variable: tibber_response
-  - variables:
-      tibber_prices_raw: "{{ (tibber_response['prices'].values() | list)[0] }}"
-      tibber_prices_today: >
-        {% set today = now().date() %} {% set ns = namespace(list=[]) %} {% for
-        p in tibber_prices_raw %}
-          {% if as_datetime(p.start_time).date() == today %}
-            {% set ns.list = ns.list + [ p.price ] %}
-          {% endif %}
-        {% endfor %} {{ ns.list }}
-      avg_today: |
-        {% if tibber_prices_today | count > 0 %}
-          {{ (tibber_prices_today | sum / tibber_prices_today | count) | round(2) }}
-        {% else %}
-          unknown
-        {% endif %}
-      tibber_prices_mapped: |
-        {% set ns = namespace(list=[]) %} {% for p in tibber_prices_raw %}
-          {% set ns.list = ns.list + [ {"start_time": p.start_time, "price_per_kwh": p.price} ] %}
-        {% endfor %} {{ ns.list }}
-  - data:
-      entity_id: sensor.tibber_prices
-      state: "{{ avg_today }}"
-      prices: "{{ tibber_prices_mapped }}"
-    action: python_script.set_tibber_prices
-mode: single
-```
-4. Run script
-- Go to Home Assistant → Scripts → Tibber prices update → Run
-- After that, the sensor sensor.tibber_prices exists (You can also rename this in the script if you like or if a entity already exists with this name)
-
-After that you should have a sensor `sensor.tibber_prices`.  The state of this sensor is the average today price.
+After that you should have a sensor `sensor.tibber_prices`.  The state of this sensor is the average price.
 The attributes of this sensor will also have a data array with all the 15-minutes prices for today and if available for tomorrow.
 
 So you could simple use this card then with
 ```yaml
 price: sensor.tibber_prices
-timeline: true
-theme: light
 type: custom:price-timeline-card
 ```
-To ensure that you always have fresh data, you can create an automation that calls the script regularly and at home assistant startup (otherwise the sensor is not available maybe).
+
+##### nordpool integration (!<u>optionally</u>!)
+You need to change config_entry, areas and currency according to your data:
+
+```yaml
+- trigger:
+      - platform: time_pattern
+        minutes: "/10"
+      - platform: homeassistant
+        event: start
+
+    action:
+      - action: nordpool.get_prices_for_date
+        data:
+          config_entry: 01K6BFF0TVKT3M3RDYTQWVM38D
+          date: "{{ now().date() }}"
+          areas: SE3
+          currency: SEK
+        response_variable: today_price
+
+      - action: nordpool.get_prices_for_date
+        data:
+          config_entry: 01K6BFF0TVKT3M3RDYTQWVM38D
+          date: "{{ now().date() + timedelta(days=1) }}"
+          areas: SE3
+          currency: SEK
+        response_variable: tomorrow_price
+
+    sensor:
+      - name: Combined Nordpool Prices
+        unique_id: combined_nordpool_prices
+        state: "{{ now().isoformat() }}"
+        attributes:
+          data: >
+            {% set all = namespace(prices=[]) %}
+            {% if today_price and today_price['SE3'] is defined %}
+              {% for item in today_price['SE3'] %}
+                {% set all.prices = all.prices + [{
+                  'start_time': (item.start | as_datetime | as_local).isoformat(),
+                  'end_time': (item.end | as_datetime | as_local).isoformat(),
+                  'price_per_kwh': item.price / 1000
+                }] %}
+              {% endfor %}
+            {% endif %}
+            {% if tomorrow_price and tomorrow_price['SE3'] is defined %}
+              {% for item in tomorrow_price['SE3'] %}
+                {% set all.prices = all.prices + [{
+                  'start_time': (item.start | as_datetime | as_local).isoformat(),
+                  'end_time': (item.end | as_datetime | as_local).isoformat(),
+                  'price_per_kwh': item.price / 1000
+                }] %}
+              {% endfor %}
+            {% endif %}
+            {{ all.prices | sort(attribute='start_time') }}
+```
+This will generate a sensor called sensor.combined_nordpool_prices.
+So you could simple use this card then with
+```yaml
+price: sensor.combined_nordpool_prices
+type: custom:price-timeline-card
+```
 
 ### HACS
 #### Community Store
