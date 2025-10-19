@@ -30,13 +30,16 @@ class PriceTimelineCard extends LitElement {
     
 
     set hass(hass) {
-        this._hass = hass;
-        this._lang = hass?.locale?.language || hass?.language || "en";
-        this.requestUpdate();
+      if (hass === this._hass) return;
+      this._hass = hass;
+      this._lang = hass?.locale?.language || hass?.language || "en";
+      this.requestUpdate();
     }
     
-    firstUpdated() {
-  
+    updated(changedProps) {
+      if (changedProps.has('theme')) {
+        this._applyTheme();
+      }
     }
     
     static get styles() {
@@ -583,6 +586,7 @@ class PriceTimelineCard extends LitElement {
 
      //TIMELINE
     _renderTimeline(data, currentIndex, avg, lang) {
+        console.log("render")
         const now = new Date();
         const slotMinutes = data.length > 1 ? Math.round((new Date(data[1].start_time) - new Date(data[0].start_time)) / 60000) : 60;
         const minutes = now.getMinutes();
@@ -645,6 +649,7 @@ class PriceTimelineCard extends LitElement {
     }
 
     _generateChart(data, currentIndex, average, lang){
+        console.log("generate")
         const rawData = data;
         const parsed = rawData.map(d => ({
         time: new Date(d.start_time),
@@ -658,11 +663,11 @@ class PriceTimelineCard extends LitElement {
       const hasTomorrow = rawData.some(d => new Date(d.start_time).getDate() !== start.getDate());
           const width = 500;
           const height = 300;
-          const margin = {left:42,right:20,top:40,bottom:30};
+          const margin = {left:42,right:20,top:30,bottom:30};
           const innerW = width - margin.left - margin.right;
           const innerH = height - margin.top - margin.bottom;
         
-          const min = Math.min(...parsed.map(p=>p.cent))*0.95;
+          const min = Math.min(...parsed.map(p=>p.cent))*0.9;
           const max = Math.max(...parsed.map(p=>p.cent))*1.05;
         
           const xFor = t => margin.left + ((t - start)/(end-start))*innerW;
@@ -674,20 +679,43 @@ class PriceTimelineCard extends LitElement {
         
           // --- Y- ---
           const style = getComputedStyle(this);
-          function hexToRgb(hex) {
-            if (!hex) return "255,255,255"; 
-            hex = hex.trim();
-          
-            if (/^#([a-f\d])([a-f\d])([a-f\d])$/i.test(hex)) {
-              hex = hex.replace(/^#([a-f\d])([a-f\d])([a-f\d])$/i, "#$1$1$2$2$3$3");
-            }
-          
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result
-              ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}`
-              : hex; 
+
+          function toRgbString(color) {
+              if (!color) return "255,255,255"; // fallback
+            
+              color = color.trim();
+            
+              // rgb(...) ,  rgba(...) 
+              if (/^rgba?\(/i.test(color)) {
+                const match = color.match(/\d+,\s*\d+,\s*\d+/);
+                return match ? match[0] : "255,255,255";
+              }
+            
+              // Hex
+              if (/^#([a-f\d]{3}|[a-f\d]{6})$/i.test(color)) {
+                let hex = color.replace(
+                  /^#([a-f\d])([a-f\d])([a-f\d])$/i,
+                  "#$1$1$2$2$3$3"
+                );
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result
+                  ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}`
+                  : "255,255,255";
+              }
+            
+              //color names ( "lightgray", ... ) parsing by browser
+              const temp = document.createElement("div");
+              temp.style.color = color;
+              document.body.appendChild(temp);
+            
+              const cs = getComputedStyle(temp).color; 
+              document.body.removeChild(temp);
+            
+              const match = cs.match(/\d+,\s*\d+,\s*\d+/);
+              return match ? match[0] : "255,255,255";
           }
-          const color = hexToRgb(style.getPropertyValue("--card-subtle").trim() || "255,255,255");
+          
+          const color = toRgbString(style.getPropertyValue("--card-subtle").trim() || "255,255,255");
           const step = Math.round((max-min)/5);
           for(let v=Math.round(min); v<=Math.round(max); v+=step){
             const y = yFor(v);
@@ -696,7 +724,7 @@ class PriceTimelineCard extends LitElement {
             line.setAttribute("x2",width-margin.right);
             line.setAttribute("y1",y);
             line.setAttribute("y2",y);
-            line.setAttribute("stroke", `rgba(${color}, 0.06)`);
+            line.setAttribute("stroke", `rgba(${color}, 0.2)`);
             svg.appendChild(line);
         
             const txt = document.createElementNS(svgNS,"text");
@@ -760,8 +788,9 @@ class PriceTimelineCard extends LitElement {
           avgLine.setAttribute("x2",width-margin.right);
           avgLine.setAttribute("y1",yAvg);
           avgLine.setAttribute("y2",yAvg);
-          avgLine.setAttribute("stroke",`rgba(${color}, 0.25)`);
+          avgLine.setAttribute("stroke",`rgba(${color}, 0.35)`);
           avgLine.setAttribute("stroke-dasharray","4 3");
+          avgLine.setAttribute("stroke-width", 2);
           svg.appendChild(avgLine);
         
           
@@ -773,8 +802,9 @@ class PriceTimelineCard extends LitElement {
         vLine.setAttribute("x2",xMid);
         vLine.setAttribute("y1",margin.top);
         vLine.setAttribute("y2",height-margin.bottom);
-        vLine.setAttribute("stroke",`rgba(${color}, 0.2)`);
+        vLine.setAttribute("stroke",`rgba(${color}, 0.3)`);
         vLine.setAttribute("stroke-width","1.2");
+        vLine.setAttribute("stroke-width", 2);
         svg.appendChild(vLine);
         
        // now line
@@ -784,9 +814,10 @@ class PriceTimelineCard extends LitElement {
         vLine2.setAttribute("x2",xNowTime);
         vLine2.setAttribute("y1",margin.top);
         vLine2.setAttribute("y2",height-margin.bottom);
-        vLine2.setAttribute("stroke",`rgba(${color}, 0.2)`);
+        vLine2.setAttribute("stroke",`rgba(${color}, 0.5)`);
         vLine2.setAttribute("stroke-width","1.2");
         vLine2.setAttribute("stroke-dasharray","3 3"); 
+        vLine2.setAttribute("stroke-width", 2);
         svg.appendChild(vLine2);
         
         // labels today, tomorrow , yesterday
@@ -822,7 +853,7 @@ class PriceTimelineCard extends LitElement {
           todayLabel.textContent= (start.getDate() === now.getDate()-1)?localize("editor_start_yesterday",lang):localize("editor_start_today", lang);
           svg.appendChild(todayLabel);
         }
-         if (now >= start && now <= end) {
+        if (now >= start && now <= end) {
 
             const cx = xFor(new Date(data[currentIndex].start_time))
             const cy = yFor(data[currentIndex].price_per_kwh*100)
@@ -832,9 +863,9 @@ class PriceTimelineCard extends LitElement {
             circle.setAttribute("cx",cx);
             circle.setAttribute("cy",cy);
             circle.setAttribute("r",8);
-            circle.setAttribute("fill",`rgba(${hexToRgb(style.getPropertyValue(color).trim() || "255,255,255")}, 0.4`);
+            circle.setAttribute("fill",`rgba(${toRgbString(style.getPropertyValue(color).trim() || "255,255,255")}, 0.4`);
             svg.appendChild(circle);
-            
+
              const circle2 = document.createElementNS(svgNS,"circle");
             circle2.setAttribute("cx",cx);
             circle2.setAttribute("cy",cy);
@@ -849,7 +880,7 @@ class PriceTimelineCard extends LitElement {
             circle3.setAttribute("fill", `var(${color})`);
             svg.appendChild(circle3);
             
-          }
+        }
            
          function markMinMax(svg, points, dayStart, dayEnd) {
             const dayPoints = points.filter(p => p.time >= dayStart && p.time < dayEnd);
@@ -857,9 +888,12 @@ class PriceTimelineCard extends LitElement {
         
             const minP = dayPoints.reduce((a,b)=>a.v<b.v?a:b);
             const maxP = dayPoints.reduce((a,b)=>a.v>b.v?a:b);
+
         
             [minP, maxP].forEach(p=>{
+              const yOffset =  p.v > average ? p.y - 8 : p.y + 16;
               const color = p.v > average ? "var(--orange)" : "var(--turquoise)";
+              const color2 = p.v < average ? "var(--orange)" : "var(--turquoise)";
         
               const circle = document.createElementNS(svgNS,"circle");
               circle.setAttribute("cx", p.x);
@@ -868,10 +902,19 @@ class PriceTimelineCard extends LitElement {
               circle.setAttribute("fill", color);
               circle.setAttribute("opacity","0.85");
               svg.appendChild(circle);
+              
+              
+              const circle2 = document.createElementNS(svgNS,"circle");
+              circle2.setAttribute("cx", p.x);
+              circle2.setAttribute("cy", p.y);
+              circle2.setAttribute("r", 2);
+              circle2.setAttribute("fill", color2);
+              circle2.setAttribute("opacity","0.85");
+              svg.appendChild(circle2);
         
               const text = document.createElementNS(svgNS,"text");
               text.setAttribute("x", p.x);
-              text.setAttribute("y", p.y - 10);
+              text.setAttribute("y", yOffset);
               text.setAttribute("text-anchor","middle");
               text.setAttribute("fill","var(--card-text)");
               text.setAttribute("font-size","13px");
@@ -898,6 +941,7 @@ class PriceTimelineCard extends LitElement {
     
     //CHART
     _renderChart(data, currentIndex, avg, lang){
+        console.log("render chart")
         const circleColor = data[currentIndex].price_per_kwh > avg ? "var(--orange)" : "var(--turquoise)";
          return html`
                 <div>
@@ -916,7 +960,6 @@ class PriceTimelineCard extends LitElement {
     render() {
         if (!this._hass) return html``;
         const lang = this._lang;
-        this._applyTheme();
 
         const entity = this._hass.states[this.config.price];
 
