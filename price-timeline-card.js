@@ -586,7 +586,6 @@ class PriceTimelineCard extends LitElement {
 
      //TIMELINE
     _renderTimeline(data, currentIndex, avg, lang) {
-        console.log("render")
         const now = new Date();
         const slotMinutes = data.length > 1 ? Math.round((new Date(data[1].start_time) - new Date(data[0].start_time)) / 60000) : 60;
         const minutes = now.getMinutes();
@@ -649,7 +648,6 @@ class PriceTimelineCard extends LitElement {
     }
 
     _generateChart(data, currentIndex, average, lang){
-        console.log("generate")
         const rawData = data;
         const parsed = rawData.map(d => ({
         time: new Date(d.start_time),
@@ -941,7 +939,6 @@ class PriceTimelineCard extends LitElement {
     
     //CHART
     _renderChart(data, currentIndex, avg, lang){
-        console.log("render chart")
         const circleColor = data[currentIndex].price_per_kwh > avg ? "var(--orange)" : "var(--turquoise)";
          return html`
                 <div>
