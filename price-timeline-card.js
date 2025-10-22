@@ -4,9 +4,12 @@ import en from "./localize/en.js";
 import de from "./localize/de.js";
 import es from "./localize/es.js";
 import fr from "./localize/fr.js";
+import da from "./localize/da.js";
+import nl from "./localize/nl.js";
+import no from "./localize/no.js";
+import sv from "./localize/sv.js";
 
-
-const languages = { en, de, es, fr };
+const languages = { en, de, es, fr, da, nl, no, sv };
 function localize(key, lang) {
     return languages[lang]?.[key] || languages["en"][key] || key;
 }
