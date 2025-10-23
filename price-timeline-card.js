@@ -978,7 +978,7 @@ class PriceTimelineCard extends LitElement {
         const circleColor = data[currentIndex].price_per_kwh > avg ? "var(--orange)" : "var(--turquoise)";
          return html`
                 <div>
-                    <h3 style="margin: 0px">${localize("label_average_price", lang)}: <span id="avgText">${avg*100} ${this._getCurrency(lang).name}</span></h3>
+                    <h3 style="margin: 0px">${localize("label_average_price", lang)}: <span id="avgText">${(avg*100).toFixed(1)} ${this._getCurrency(lang).name}</span></h3>
                     <h5 style="margin: 0px; color:${circleColor}">${localize("label_price", lang)}: <span>${(data[currentIndex].price_per_kwh*100).toFixed(1)} ${this._getCurrency(lang).name} (${this._getDataTimeLabel(data, currentIndex)})</span></h5>
                 </div>
                 ${this._generateChart(data, currentIndex, avg*100, lang)}
