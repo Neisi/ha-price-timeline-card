@@ -7,6 +7,10 @@ export default {
   label_time_nextDay: "Rango de precios",
   label_average_price: "Precio medio",
   label_price: "Precio",
+  label_day: "Día",
+  label_start: "Inicio",
+  label_end: "Fin",
+  label_duration: "Duración",
   unit_cent: "Céntimos",
   label_tomorrow_price: "Precio de mañana",
   editor_theme_light: "Claro",
@@ -28,4 +32,6 @@ export default {
   editor_currency_desc: "Especifique una moneda personalizada",
   editor_day_switch_label: "Conmutador de día",
   editor_day_switch_desc: "Muestra u oculta el conmutador de día",
+  editor_cheap_times_label: "Tiempos económicos",
+  editor_cheap_times_desc: "Visualización de intervalos de tiempo económicos",
 };

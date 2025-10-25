@@ -9,6 +9,10 @@ export default {
   label_tomorrow_price: "Morgondagens pris",
   label_average_price: "Genomsnittspris",
   label_price: "Pris",
+  label_day: "Dag",
+  label_start: "Start",
+  label_end: "Slut",
+  label_duration: "Varaktighet",
   editor_theme_light: "Ljus",
   editor_theme_dark: "Mörk",
   editor_theme_system: "System",
@@ -28,4 +32,6 @@ export default {
   editor_currency_desc: "Ange egen valuta",
   editor_day_switch_label: "Dagsväxlare",
   editor_day_switch_desc: "Visar eller döljer dagsväxlaren",
+  editor_cheap_times_label: "Billiga tider",
+  editor_cheap_times_desc: "Visning av billiga tidsintervall",
 };

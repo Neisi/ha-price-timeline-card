@@ -11,75 +11,91 @@ import sv from "./localize/sv.js";
 
 const languages = { en, de, es, fr, da, nl, no, sv };
 function localize(key, lang) {
-    return languages[lang]?.[key] || languages["en"][key] || key;
+  return languages[lang]?.[key] || languages["en"][key] || key;
 }
 
+const _localYYYYMMDD = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
+const _localISODateTime = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `${y}-${m}-${day}T${hh}:${mm}:${ss}`;
+};
 
 class PriceTimelineCard extends LitElement {
-    
-    constructor() {
-        super();
-        this._dayOffset = 0; // 0 = today, 1 = tomorrow, 2 = both
-        this._animating = false; 
-    }
-    
-    static get properties() {
-        return {
-            config: {},
-            theme: { type: String },
-            selectedIndex: { type: Number },
-        };
-    }
-    
 
-    set hass(hass) {
-      if (hass === this._hass) return;
-      this._hass = hass;
-      this._lang = hass?.locale?.language || hass?.language || "en";
-      
-      const oldHass = this._hass;
-      this._hass = hass;
-    
-      const entityId = this.config.entity;
-      const oldState = oldHass?.states?.[entityId]?.state;
-      const newState = hass?.states?.[entityId]?.state;
-    
-      if (oldState !== newState) {
+  constructor() {
+    super();
+    this._dayOffset = 0; // 0 = today, 1 = tomorrow, 2 = both
+    this._animating = false;
+  }
+
+  static get properties() {
+    return {
+      config: {},
+      theme: { type: String },
+      selectedIndex: { type: Number },
+    };
+  }
+
+
+  set hass(hass) {
+    if (hass === this._hass) return;
+    this._hass = hass;
+    this._lang = hass?.locale?.language || hass?.language || "en";
+
+    const oldHass = this._hass;
+    this._hass = hass;
+
+    const entityId = this.config.entity;
+    const oldState = oldHass?.states?.[entityId]?.state;
+    const newState = hass?.states?.[entityId]?.state;
+
+    if (oldState !== newState) {
+      this.requestUpdate();
+    }
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    const now = new Date();
+    const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+
+    setTimeout(() => {
+      this.requestUpdate();
+
+      this._autoUpdateInterval = setInterval(() => {
         this.requestUpdate();
-      }
+      }, 60_000);
+    }, msToNextMinute);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._autoUpdateInterval) {
+      clearInterval(this._autoUpdateInterval);
+      this._autoUpdateInterval = null;
     }
-    
-    connectedCallback() {
-      super.connectedCallback();
-    
-      const now = new Date();
-      const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
-    
-      setTimeout(() => {
-        this.requestUpdate();
-    
-        this._autoUpdateInterval = setInterval(() => {
-          this.requestUpdate();
-        }, 60_000);
-      }, msToNextMinute);
+  }
+
+  updated(changedProps) {
+    if (changedProps.has('theme')) {
+      this._applyTheme();
     }
-    
-    disconnectedCallback() {
-      super.disconnectedCallback();
-      if (this._autoUpdateInterval) {
-        clearInterval(this._autoUpdateInterval);
-        this._autoUpdateInterval = null;
-      }
-    }
-    
-    updated(changedProps) {
-      if (changedProps.has('theme')) {
-        this._applyTheme();
-      }
-    }
-    
-    static get styles() {
-        return css`
+  }
+
+  static get styles() {
+    return css`
             :host {
               --color-bg-light:#fff;
               --color-text-light:#000;
@@ -241,7 +257,7 @@ class PriceTimelineCard extends LitElement {
               margin-top:4px;
             }
             .slider-container {
-              margin-top:16px;
+              margin-top:4px;
             }
             input[type="range"] {
               width:100%;
@@ -356,245 +372,675 @@ class PriceTimelineCard extends LitElement {
             .active-tomorrow span.tomorrow {
               color: #333;
             }
-        `;
-    }
-    
-    setConfig(config) {
-        if (!config.price) throw new Error(localize("missing_price", "en"));
-        this.config = config;
-        this.theme = config.theme || "light";
-        this.selectedIndex = undefined;
-        switch (config.start_view) {
-            case "tomorrow":
-              this._dayOffset = 1;
-              break;
-            default:
-              this._dayOffset = 0; 
-          }
-    }
-
-    _onSliderChange(ev) {
-        this.selectedIndex = parseInt(ev.target.value, 10);
-    }
-    
-    
-    _applyTheme() {
-        switch (this.theme) {
-            case "dark":
-                this.style.setProperty("--card-bg", "var(--color-bg-dark)");
-                this.style.setProperty("--card-text", "var(--color-text-dark)");
-                this.style.setProperty("--card-subtle", "var(--color-subtle-dark)");
-                this.style.setProperty("--card-dot", "var(--color-dot-dark)");
-                this.style.setProperty("--orange", "var(--color-orange-dark)");
-                this.style.setProperty("--turquoise", "var(--color-turquoise-dark)");
-                this.style.setProperty("--no-data-line", "var(--orange)");
-                this.style.setProperty("--no-data-text", "var(--color-subtle-dark)");
-                break;
-            case "theme":
-                this.style.setProperty("--card-bg", "var(--ha-card-background, var(--card-background-color))");
-                this.style.setProperty("--card-text", "var(--primary-text-color)");
-                this.style.setProperty("--card-subtle", "var(--secondary-text-color)");
-                this.style.setProperty("--card-dot", "var(--divider-color)");
-                this.style.setProperty("--orange", "var(--accent-color)");
-                this.style.setProperty("--turquoise", "var(--state-icon-color)");
-                this.style.setProperty("--no-data-line", "var(--accent-color)");
-                this.style.setProperty("--no-data-text", "var(--secondary-text-color)");
-                break;
-            default:
-                this.style.setProperty("--card-bg", "var(--color-bg-light)");
-                this.style.setProperty("--card-text", "var(--color-text-light)");
-                this.style.setProperty("--card-subtle", "var(--color-subtle-light)");
-                this.style.setProperty("--card-dot", "var(--color-dot-light)");
-                this.style.setProperty("--orange", "var(--color-orange-light)");
-                this.style.setProperty("--turquoise", "var(--color-turquoise-light)");
-                this.style.setProperty("--no-data-line", "var(--orange)");
-                this.style.setProperty("--no-data-text", "var(--color-subtle-light)");
-        }
-    }
-    
-     _getDataTimeLabel(data, index) {
-          const startTime = new Date(data[index]?.start_time);
-          const endTime =
-            index + 1 < data.length
-              ? new Date(data[index + 1].start_time)
-              : new Date(startTime.getTime() + 15 * 60000);
-        
-          const format = (date) =>
-            date.toTimeString().slice(0, 5); // "HH:MM"
-        
-          return `${format(startTime)}-${format(endTime)}`;
-    }
-
-    _getCurrentDataIndex(data, now) {
-        let bestIndex = 0;
-        let bestDiff = Number.POSITIVE_INFINITY;
-        for (let i = 0; i < data.length; i++) {
-            const start = new Date(data[i].start_time);
-            const diff = now - start;
-            if (diff >= 0 && diff < bestDiff) {
-                bestDiff = diff;
-                bestIndex = i;
+            
+             .cheap-phases {
+              margin-top: 0.3rem;
+              font-size: 0.75em; 
+              opacity: 0.85;    
             }
-        }
-        return bestIndex;
+            
+            .cheap-phases table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            
+            .cheap-phases th,
+            .cheap-phases td {
+              padding: 2px 4px;
+              text-align: center;
+              white-space: nowrap;
+            }
+            
+            .cheap-phases th {
+              font-weight: 500;
+              opacity: 0.6;
+              border-bottom: 1px solid rgba(120,120,120, 0.2);
+            }
+            
+            .cheap-phases td {
+              opacity: 0.9;
+            }
+            
+            .cheap-phases tr + tr td {
+              border-top: 1px solid rgba(120,120,120, 0.08);
+            }
+        `;
+  }
+
+  setConfig(config) {
+    if (!config.price) throw new Error(localize("missing_price", "en"));
+    this.config = config;
+    this.theme = config.theme || "light";
+    this.selectedIndex = undefined;
+    switch (config.start_view) {
+      case "tomorrow":
+        this._dayOffset = 1;
+        break;
+      default:
+        this._dayOffset = 0;
     }
-    
-    _getDataForOffset(entity, offset = 0) {
-        const allData = entity?.attributes?.data || [];
-        if (offset === 2){
-            const now = new Date();
-            const yesterday = new Date(now);
-            yesterday.setDate(now.getDate() - 1);
-            const tomorrow = new Date(now);
-            tomorrow.setDate(now.getDate() + 1);
-            const filtered = allData.filter(item => {
-            const date = new Date(item.start_time);
-              return (
-                this._isSameDay(date, yesterday) ||
-                this._isSameDay(date, now) ||
-                this._isSameDay(date, tomorrow)
-              );
-            });
-            return filtered;
-        }else if (offset ===1 || offset ===0){
-            const date = new Date();
-            date.setDate(date.getDate() + offset);
-            return allData.filter(item => {
-                const start = new Date(item.start_time);
-                return start.getFullYear() === date.getFullYear() &&
-                       start.getMonth() === date.getMonth() &&
-                       start.getDate() === date.getDate();
-            });
-        }
+  }
+
+  _onSliderChange(ev) {
+    this.selectedIndex = parseInt(ev.target.value, 10);
+  }
+
+
+  _applyTheme() {
+    switch (this.theme) {
+      case "dark":
+        this.style.setProperty("--card-bg", "var(--color-bg-dark)");
+        this.style.setProperty("--card-text", "var(--color-text-dark)");
+        this.style.setProperty("--card-subtle", "var(--color-subtle-dark)");
+        this.style.setProperty("--card-dot", "var(--color-dot-dark)");
+        this.style.setProperty("--orange", "var(--color-orange-dark)");
+        this.style.setProperty("--turquoise", "var(--color-turquoise-dark)");
+        this.style.setProperty("--no-data-line", "var(--orange)");
+        this.style.setProperty("--no-data-text", "var(--color-subtle-dark)");
+        break;
+      case "theme":
+        this.style.setProperty("--card-bg", "var(--ha-card-background, var(--card-background-color))");
+        this.style.setProperty("--card-text", "var(--primary-text-color)");
+        this.style.setProperty("--card-subtle", "var(--secondary-text-color)");
+        this.style.setProperty("--card-dot", "var(--divider-color)");
+        this.style.setProperty("--orange", "var(--accent-color)");
+        this.style.setProperty("--turquoise", "var(--state-icon-color)");
+        this.style.setProperty("--no-data-line", "var(--accent-color)");
+        this.style.setProperty("--no-data-text", "var(--secondary-text-color)");
+        break;
+      default:
+        this.style.setProperty("--card-bg", "var(--color-bg-light)");
+        this.style.setProperty("--card-text", "var(--color-text-light)");
+        this.style.setProperty("--card-subtle", "var(--color-subtle-light)");
+        this.style.setProperty("--card-dot", "var(--color-dot-light)");
+        this.style.setProperty("--orange", "var(--color-orange-light)");
+        this.style.setProperty("--turquoise", "var(--color-turquoise-light)");
+        this.style.setProperty("--no-data-line", "var(--orange)");
+        this.style.setProperty("--no-data-text", "var(--color-subtle-light)");
     }
-    
-    _isSameDay(d1, d2) {
-          return d1.getFullYear() === d2.getFullYear() &&
-                 d1.getMonth() === d2.getMonth() &&
-                 d1.getDate() === d2.getDate();
+  }
+
+  _getDataTimeLabel(data, index) {
+    const startTime = new Date(data[index]?.start_time);
+    const endTime =
+      index + 1 < data.length
+        ? new Date(data[index + 1].start_time)
+        : new Date(startTime.getTime() + 15 * 60000);
+
+    const format = (date) =>
+      date.toTimeString().slice(0, 5); // "HH:MM"
+
+    return `${format(startTime)}-${format(endTime)}`;
+  }
+
+  _getCurrentDataIndex(data, now) {
+    let bestIndex = 0;
+    let bestDiff = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < data.length; i++) {
+      const start = new Date(data[i].start_time);
+      const diff = now - start;
+      if (diff >= 0 && diff < bestDiff) {
+        bestDiff = diff;
+        bestIndex = i;
+      }
+    }
+    return bestIndex;
+  }
+
+  _getDataForOffset(entity, offset = 0) {
+    const allData = entity?.attributes?.data || [];
+    if (offset === 2) {
+      const now = new Date();
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      const filtered = allData.filter(item => {
+        const date = new Date(item.start_time);
+        return (
+          this._isSameDay(date, yesterday) ||
+          this._isSameDay(date, now) ||
+          this._isSameDay(date, tomorrow)
+        );
+      });
+      return filtered;
+    } else if (offset === 1 || offset === 0) {
+      const date = new Date();
+      date.setDate(date.getDate() + offset);
+      return allData.filter(item => {
+        const start = new Date(item.start_time);
+        return start.getFullYear() === date.getFullYear() &&
+          start.getMonth() === date.getMonth() &&
+          start.getDate() === date.getDate();
+      });
+    }
+  }
+
+  _isSameDay(d1, d2) {
+    return d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate();
+  }
+
+  _hasPriceData(data) {
+    return data.every(obj => obj.hasOwnProperty('price_per_kwh'));
+  }
+
+  _calculateAveragePrice(data) {
+    if (!data || data.length === 0) return 0;
+
+    const centsRounded = data.map(item => {
+      const centValue = item.price_per_kwh * 100;
+      return Math.round(centValue * 10) / 10;
+    });
+
+    const sum = centsRounded.reduce((acc, val) => acc + val, 0);
+    const average = sum / centsRounded.length;
+
+    const rounded = Math.round(average);
+
+    return rounded / 100;
+  }
+
+  _roundCent(price_per_kwh) {
+    return (Math.round(Math.round(price_per_kwh * 100 * 10) / 10) / 100);
+  }
+
+  _getPriceRange(data) {
+    if (!data || data.length === 0) {
+      return { min: undefined, max: undefined };
     }
 
-    _hasPriceData(data) {
-        return data.every(obj => obj.hasOwnProperty('price_per_kwh'));
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+
+    for (const item of data) {
+      const price = parseFloat(item.price_per_kwh);
+      if (isNaN(price)) continue;
+      if (price < min) min = price;
+      if (price > max) max = price;
     }
 
-    _renderNoData(lang) {
-        return html`
+    return { min, max };
+  }
+
+  _getCurrency(lang = this.hass?.language || "en") {
+    //default =cent
+    const defaultCurrency = {
+      name: localize("unit_cent", lang),
+      symbol: "¢",
+    };
+
+    const cur = this.config.currency;
+    if (cur && (cur.name?.trim() || cur.symbol?.trim())) {
+      return {
+        name: cur.name?.trim() || defaultCurrency.name,
+        symbol: cur.symbol?.trim() || defaultCurrency.symbol,
+      };
+    }
+    return defaultCurrency;
+  }
+
+  _getCheapIntervalsPerDay(data) {
+    const byDay = {};
+
+    for (const item of data) {
+      const d = new Date(item.start_time);
+      const date = _localYYYYMMDD(d);
+
+      if (!byDay[date]) byDay[date] = [];
+      const price = Math.round(item.price_per_kwh * 1000) / 1000;
+      byDay[date].push(price);
+    }
+
+    const result = {};
+
+    for (const [day, prices] of Object.entries(byDay)) {
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      const rel = prices.map((p) => (p - min) / (max - min || 1));
+
+      const sorted = [...rel].sort((a, b) => a - b);
+      const threshold = sorted[Math.floor(0.25 * (sorted.length - 1))];
+
+      result[day] = rel.map((r) => r <= threshold);
+    }
+
+    return result;
+  };
+
+
+  _getCheapPhasesPerDay(data) {
+    const dayFlags = this._getCheapIntervalsPerDay(data);
+
+
+    const timesByDay = {};
+    for (const item of data) {
+      const d = new Date(item.start_time);
+      const date = _localYYYYMMDD(d);
+      if (!timesByDay[date]) timesByDay[date] = [];
+      timesByDay[date].push(new Date(item.start_time));
+    }
+
+    const result = {};
+
+    for (const [day, flags] of Object.entries(dayFlags)) {
+      const times = timesByDay[day];
+      const phases = [];
+      let start = null;
+
+
+      let intervalMs = 60 * 60 * 1000;
+      if (times.length > 1) {
+        intervalMs = times[1] - times[0];
+      }
+
+      for (let i = 0; i < flags.length; i++) {
+        if (flags[i] && start === null) {
+          start = new Date(times[i]);
+        }
+        if ((!flags[i] || i === flags.length - 1) && start !== null) {
+          const endIndex = flags[i] ? i : i - 1;
+          const end = new Date(times[endIndex].getTime() + intervalMs);
+
+          phases.push({
+            start: _localISODateTime(start),
+            end: _localISODateTime(end),
+          });
+
+          start = null;
+        }
+      }
+
+      result[day] = phases;
+    }
+
+    return this._getFutureCheapPhases(result);
+  };
+
+  _getFutureCheapPhases(phasesObj) {
+    const now = new Date();
+    const ONE_HOUR = 60 * 60 * 1000;
+    const result = {};
+
+    for (const [day, phases] of Object.entries(phasesObj)) {
+      const filtered = [];
+
+      for (const phase of phases) {
+        const start = new Date(phase.start);
+        const end = new Date(phase.end);
+        const duration = end - start;
+
+        if (end > now && duration >= ONE_HOUR) {
+
+          filtered.push({
+            start: _localISODateTime(start),
+            end: _localISODateTime(end),
+          });
+        }
+      }
+
+      if (filtered.length > 0) {
+        result[day] = filtered;
+      }
+    }
+
+    return result;
+  }
+
+  _generateChart(data, currentIndex, average, lang) {
+    const rawData = data;
+    const parsed = rawData.map(d => ({
+      time: new Date(d.start_time),
+      cent: d.price_per_kwh * 100
+    }));
+    parsed.sort((a, b) => a.time - b.time);
+
+    const start = parsed[0].time;
+    const end = parsed[parsed.length - 1].time;
+    const now = new Date();
+    const hasTomorrow = rawData.some(d => new Date(d.start_time).getDate() !== start.getDate());
+    const width = 500;
+    const height = 300;
+    const margin = { left: 42, right: 20, top: 30, bottom: 45 };
+    const innerW = width - margin.left - margin.right;
+    const innerH = height - margin.top - margin.bottom;
+
+    const min = Math.min(...parsed.map(p => p.cent)) * 0.9;
+    const max = Math.max(...parsed.map(p => p.cent)) * 1.05;
+
+    const xFor = t => margin.left + ((t - start) / (end - start)) * innerW;
+    const yFor = v => margin.top + innerH - ((v - min) / (max - min)) * innerH;
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+    // --- Y- ---
+    const style = getComputedStyle(this);
+
+    function toRgbString(color) {
+      if (!color) return "255,255,255"; // fallback
+
+      color = color.trim();
+
+      // rgb(...) ,  rgba(...) 
+      if (/^rgba?\(/i.test(color)) {
+        const match = color.match(/\d+,\s*\d+,\s*\d+/);
+        return match ? match[0] : "255,255,255";
+      }
+
+      // Hex
+      if (/^#([a-f\d]{3}|[a-f\d]{6})$/i.test(color)) {
+        let hex = color.replace(
+          /^#([a-f\d])([a-f\d])([a-f\d])$/i,
+          "#$1$1$2$2$3$3"
+        );
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result
+          ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}`
+          : "255,255,255";
+      }
+
+      //color names ( "lightgray", ... ) parsing by browser
+      const temp = document.createElement("div");
+      temp.style.color = color;
+      document.body.appendChild(temp);
+
+      const cs = getComputedStyle(temp).color;
+      document.body.removeChild(temp);
+
+      const match = cs.match(/\d+,\s*\d+,\s*\d+/);
+      return match ? match[0] : "255,255,255";
+    }
+
+    const color = toRgbString(style.getPropertyValue("--card-subtle").trim() || "255,255,255");
+    const step = Math.round((max - min) / 5);
+    for (let v = Math.round(min); v <= Math.round(max); v += step) {
+      const y = yFor(v);
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", margin.left);
+      line.setAttribute("x2", width - margin.right);
+      line.setAttribute("y1", y);
+      line.setAttribute("y2", y);
+      line.setAttribute("stroke", `rgba(${color}, 0.2)`);
+      svg.appendChild(line);
+
+      const txt = document.createElementNS(svgNS, "text");
+      txt.setAttribute("x", 8);
+      txt.setAttribute("fill", "var(--card-text)");
+      txt.setAttribute("y", y + 4);
+      txt.setAttribute("class", "axis-label");
+      txt.textContent = Math.round(v);
+      svg.appendChild(txt);
+    }
+
+    // --- X- ---
+    const totalHours = Math.ceil((end - start) / 3600000);
+    for (let h = 0; h <= totalHours; h += (hasTomorrow ? 4 : 2)) {
+      const t = new Date(start.getTime() + h * 3600000);
+      const x = xFor(t);
+      const txt = document.createElementNS(svgNS, "text");
+      txt.setAttribute("x", x);
+      txt.setAttribute("y", height - 6);
+      txt.setAttribute("text-anchor", "middle");
+      txt.setAttribute("class", "time-label");
+      txt.setAttribute("fill", "var(--card-text)");
+      txt.textContent = String(t.getHours()).padStart(2, "0");
+      svg.appendChild(txt);
+    }
+
+    // --- Plot  ---
+    const pts = parsed.map(p => ({ x: xFor(p.time), y: yFor(p.cent), v: p.cent, time: p.time }));
+    let d = `M${pts[0].x},${pts[0].y}`;
+    for (let i = 1; i < pts.length; i++) {
+      const curr = pts[i];
+      d += ` H${curr.x} V${curr.y}`;
+    }
+
+    // Past faded
+    const grad = document.createElementNS(svgNS, "linearGradient");
+    grad.setAttribute("id", "lineGradient");
+    grad.setAttribute("gradientUnits", "userSpaceOnUse");
+    grad.setAttribute("x1", margin.left);
+    grad.setAttribute("x2", width - margin.right);
+
+    grad.innerHTML = pts.map(p => {
+      const offset = ((p.x - margin.left) / innerW) * 100;
+      const color = p.v > average ? "var(--orange)" : "var(--turquoise)";
+      const past = p.time < now ? 0.25 : 1;
+      return `<stop offset="${offset}%" stop-color="${color}" stop-opacity="${past}" />`;
+    }).join("");
+    svg.prepend(grad);
+
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", "url(#lineGradient)");
+    path.setAttribute("stroke-width", "2.6");
+    svg.appendChild(path);
+
+    // average line
+    const yAvg = yFor(average);
+    const avgLine = document.createElementNS(svgNS, "line");
+    avgLine.setAttribute("x1", margin.left);
+    avgLine.setAttribute("x2", width - margin.right);
+    avgLine.setAttribute("y1", yAvg);
+    avgLine.setAttribute("y2", yAvg);
+    avgLine.setAttribute("stroke", `rgba(${color}, 0.35)`);
+    avgLine.setAttribute("stroke-dasharray", "4 3");
+    avgLine.setAttribute("stroke-width", 2);
+    svg.appendChild(avgLine);
+
+
+    // Midnight
+    let midnight = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
+    const xMid = xFor(midnight);
+    const vLine = document.createElementNS(svgNS, "line");
+    vLine.setAttribute("x1", xMid);
+    vLine.setAttribute("x2", xMid);
+    vLine.setAttribute("y1", margin.top);
+    vLine.setAttribute("y2", height - margin.bottom);
+    vLine.setAttribute("stroke", `rgba(${color}, 0.3)`);
+    vLine.setAttribute("stroke-width", "1.2");
+    vLine.setAttribute("stroke-width", 2);
+    svg.appendChild(vLine);
+
+    // now line
+    const xNowTime = xFor(new Date(data[currentIndex].start_time));
+    const vLine2 = document.createElementNS(svgNS, "line");
+    vLine2.setAttribute("x1", xNowTime);
+    vLine2.setAttribute("x2", xNowTime);
+    vLine2.setAttribute("y1", margin.top);
+    vLine2.setAttribute("y2", height - margin.bottom);
+    vLine2.setAttribute("stroke", `rgba(${color}, 0.5)`);
+    vLine2.setAttribute("stroke-width", "1.2");
+    vLine2.setAttribute("stroke-dasharray", "3 3");
+    vLine2.setAttribute("stroke-width", 2);
+    svg.appendChild(vLine2);
+
+    // labels today, tomorrow , yesterday
+    const yLabel = margin.top - 6;
+    if (hasTomorrow) {
+      const leftLabel = document.createElementNS(svgNS, "text");
+      leftLabel.setAttribute("x", xMid - innerW / 4);
+      leftLabel.setAttribute("y", yLabel);
+      leftLabel.setAttribute("fill", "var(--card-text)");
+      leftLabel.setAttribute("font-size", "12px");
+      leftLabel.setAttribute("font-weight", "600");
+      leftLabel.setAttribute("text-anchor", "middle");
+      leftLabel.textContent = (now >= new Date(data[data.length / 2].start_time)) ? localize("editor_start_yesterday", lang) : localize("editor_start_today", lang);
+      svg.appendChild(leftLabel);
+
+      const rightLabel = document.createElementNS(svgNS, "text");
+      rightLabel.setAttribute("x", xMid + innerW / 4);
+      rightLabel.setAttribute("y", yLabel);
+      rightLabel.setAttribute("fill", "var(--card-text)");
+      rightLabel.setAttribute("font-size", "12px");
+      rightLabel.setAttribute("font-weight", "600");
+      rightLabel.setAttribute("text-anchor", "middle");
+      rightLabel.textContent = (now >= new Date(data[data.length / 2].start_time)) ? localize("editor_start_today", lang) : localize("editor_start_tomorrow", lang);
+      svg.appendChild(rightLabel);
+    } else {
+      const todayLabel = document.createElementNS(svgNS, "text");
+      todayLabel.setAttribute("x", margin.left + innerW / 2);
+      todayLabel.setAttribute("y", yLabel);
+      todayLabel.setAttribute("fill", "var(--card-text)");
+      todayLabel.setAttribute("font-size", "12px");
+      todayLabel.setAttribute("font-weight", "600");
+      todayLabel.setAttribute("text-anchor", "middle");
+      todayLabel.textContent = (start.getDate() === now.getDate() - 1) ? localize("editor_start_yesterday", lang) : localize("editor_start_today", lang);
+      svg.appendChild(todayLabel);
+    }
+    if (now >= start && now <= end) {
+
+      const cx = xFor(new Date(data[currentIndex].start_time))
+      const cy = yFor(data[currentIndex].price_per_kwh * 100)
+
+      const color = (data[currentIndex].price_per_kwh * 100) > average ? "--orange" : "--turquoise";
+      const circle = document.createElementNS(svgNS, "circle");
+      circle.setAttribute("cx", cx);
+      circle.setAttribute("cy", cy);
+      circle.setAttribute("r", 8);
+      circle.setAttribute("fill", `rgba(${toRgbString(style.getPropertyValue(color).trim() || "255,255,255")}, 0.4`);
+      svg.appendChild(circle);
+
+      const circle2 = document.createElementNS(svgNS, "circle");
+      circle2.setAttribute("cx", cx);
+      circle2.setAttribute("cy", cy);
+      circle2.setAttribute("r", 4);
+      circle2.setAttribute("fill", "#ffffff");
+      svg.appendChild(circle2);
+
+      const circle3 = document.createElementNS(svgNS, "circle");
+      circle3.setAttribute("cx", cx);
+      circle3.setAttribute("cy", cy);
+      circle3.setAttribute("r", 2);
+      circle3.setAttribute("fill", `var(${color})`);
+      svg.appendChild(circle3);
+
+    }
+
+    //phases
+    if (this.config.cheap_times === true) {
+      const dataIntervalls = this._getCheapPhasesPerDay(data);
+      for (const [day, intervals] of Object.entries(dataIntervalls)) {
+        for (const { start, end } of intervals) {
+          const rect = document.createElementNS(svgNS, "rect");
+          rect.setAttribute("x", xFor(new Date(start)));
+          rect.setAttribute("y", margin.top);
+          rect.setAttribute("width", (xFor(new Date(end)) - xFor(new Date(start))));
+          rect.setAttribute("height", height - margin.bottom - margin.top);
+          rect.setAttribute("fill", "var(--turquoise)");
+          rect.setAttribute("fill-opacity", "0.2");
+          //svg.appendChild(rect);
+          svg.insertBefore(rect, svg.firstChild);
+        }
+      }
+    }
+
+
+    function markMinMax(svg, points, dayStart, dayEnd) {
+      const dayPoints = points.filter(p => p.time >= dayStart && p.time < dayEnd);
+      if (dayPoints.length === 0) return;
+
+      const minP = dayPoints.reduce((a, b) => a.v < b.v ? a : b);
+      const maxP = dayPoints.reduce((a, b) => a.v > b.v ? a : b);
+
+
+      [minP, maxP].forEach(p => {
+        const yOffset = p.v > average ? p.y - 8 : p.y + 16;
+        const color = p.v > average ? "var(--orange)" : "var(--turquoise)";
+        const color2 = p.v < average ? "var(--orange)" : "var(--turquoise)";
+
+        const circle = document.createElementNS(svgNS, "circle");
+        circle.setAttribute("cx", p.x);
+        circle.setAttribute("cy", p.y);
+        circle.setAttribute("r", 5);
+        circle.setAttribute("fill", color);
+        circle.setAttribute("opacity", "0.85");
+        svg.appendChild(circle);
+
+
+        const circle2 = document.createElementNS(svgNS, "circle");
+        circle2.setAttribute("cx", p.x);
+        circle2.setAttribute("cy", p.y);
+        circle2.setAttribute("r", 2);
+        circle2.setAttribute("fill", color2);
+        circle2.setAttribute("opacity", "0.85");
+        svg.appendChild(circle2);
+
+        const text = document.createElementNS(svgNS, "text");
+        text.setAttribute("x", p.x);
+        text.setAttribute("y", yOffset);
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("fill", "var(--card-text)");
+        text.setAttribute("font-size", "13px");
+        text.setAttribute("font-weight", "600");
+        text.textContent = p.v.toFixed(1);
+        svg.appendChild(text);
+      });
+    }
+
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
+
+    const tomorrowStart = new Date(todayEnd);
+    const tomorrowEnd = new Date(tomorrowStart);
+    tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+
+    markMinMax(svg, pts, todayStart, todayEnd);
+    markMinMax(svg, pts, tomorrowStart, tomorrowEnd);
+
+    return svg;
+
+  }
+
+
+  _toggleDayView() {
+    this._dayOffset = this._dayOffset === 0 ? 1 : 0;
+    this.requestUpdate();
+  }
+
+
+  // --------------------
+  //NO DATA
+  //---------------------   
+  _renderNoData(lang) {
+    return html`
             <div class="ticker-container">
                 <svg class="ticker-svg" viewBox="0 0 480 60">
                     <polyline points="0,30 40,30 60,10 80,50 100,30 140,30 160,20 180,40 200,30 240,30 260,10 280,50 300,30 340,30 360,20 380,40 400,30 440,30 460,15 480,45"/>
                 </svg>
             </div>
             <div class="no-data-text">${localize("no_data", lang)}</div>
-            ${this.config.day_switch?this._renderToggler(lang):""}
+            ${this.config.day_switch ? this._renderToggler(lang) : ""}
         `;
-    }
+  }
 
-    _renderNoPrices(lang) {
-        return html`<div>${localize("no_data_prices", lang)}</div>`;
-    }
-    
-    _renderNoAttributes(lang) {
-        return html`<div>${localize("no_data_attributes", lang)}</div>`;
-    }
-
-   _calculateAveragePrice(data) {
-      if (!data || data.length === 0) return 0;
-
-       const centsRounded = data.map(item => {
-          const centValue = item.price_per_kwh * 100;
-          return Math.round(centValue * 10) / 10; 
-       }); 
-
-       const sum = centsRounded.reduce((acc, val) => acc + val, 0);
-       const average = sum / centsRounded.length;
-
-        const rounded = Math.round(average);
-
-        return rounded / 100;
-    }
-
-   _roundCent(price_per_kwh){
-       return (Math.round(Math.round(price_per_kwh * 100 * 10) / 10) / 100);
-   }
-  
-    _getPriceRange(data) {
-      if (!data || data.length === 0) {
-        return { min: undefined, max: undefined };
-      }
-    
-      let min = Number.POSITIVE_INFINITY;
-      let max = Number.NEGATIVE_INFINITY;
-    
-      for (const item of data) {
-        const price = parseFloat(item.price_per_kwh);
-        if (isNaN(price)) continue;
-        if (price < min) min = price;
-        if (price > max) max = price;
-      }
-    
-      return { min, max };
-    }
-    
-    _getCurrency(lang = this.hass?.language || "en") {
-    //default =cent
-      const defaultCurrency = {
-        name: localize("unit_cent", lang), 
-        symbol: "¢",
-      };
-    
-     const cur = this.config.currency;
-     if (cur && (cur.name?.trim() || cur.symbol?.trim())) {
-            return {
-                name: cur.name?.trim() || defaultCurrency.name,
-                symbol: cur.symbol?.trim() || defaultCurrency.symbol,
-            };
-      }
-      return defaultCurrency;
-    }
+  // --------------------
+  //NO PRICES
+  //---------------------   
+  _renderNoPrices(lang) {
+    return html`<div>${localize("no_data_prices", lang)}</div>`;
+  }
 
 
-    //CIRCLE
-    _renderCircle(data, currentIndex, avg, lang) {
-        const currentData = data[currentIndex];
-        let currentPrice = currentData.price_per_kwh;
-        const formattedPrice = (currentPrice * 100).toFixed(0);
-        currentPrice = this._roundCent(currentPrice);
-        const radius = 65;
-        const minPrice = Math.min(...data.map(d => d.price_per_kwh));
-        const maxPrice = Math.max(...data.map(d => d.price_per_kwh));
-        const rawRatio = (currentPrice - minPrice) / (maxPrice - minPrice || 1);
-        const ratio = 0.05 + rawRatio * 0.9;
-        const circumference = 2 * Math.PI * radius;
-        const offset = circumference * (1 - ratio);
-        const circleColor = currentPrice > avg ? "var(--orange)" : "var(--turquoise)";
-        const timeLabel = this._getDataTimeLabel(data, currentIndex);
+  // --------------------
+  //NO ATTRIBUTE
+  //---------------------   
+  _renderNoAttributes(lang) {
+    return html`<div>${localize("no_data_attributes", lang)}</div>`;
+  }
 
-        return html`
-            <div class="circle-container">
-                <svg width="150" height="150">
-                    <circle cx="75" cy="75" r="${radius}" stroke="var(--card-dot)" stroke-width="10" fill="none" opacity="0.2"></circle>
-                    <circle cx="75" cy="75" r="${radius}" stroke="${circleColor}" stroke-width="10" fill="none"
-                        stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"></circle>
-                </svg>
-                <div class="circle-text">
-                    <div class="price">
-                        <span class="value">${formattedPrice}</span>
-                        <span class="unit">${this._getCurrency(lang).name}</span>
-                    </div>
-                    <div class="time">${timeLabel}</div>
-                </div>
-            </div>
-            
-            ${this.config.day_switch? this._renderToggler(lang) : ""}
-            ${this.config.slider ? this._renderSlider(data, currentIndex) : ""}
-        `;
-    }
-    
-    _renderToggler(lang){
-       const activeClass = this._dayOffset === 0 ? "active-today" : "active-tomorrow";
+  // --------------------
+  //TOGGLER
+  //---------------------   
+  _renderToggler(lang) {
+    const activeClass = this._dayOffset === 0 ? "active-today" : "active-tomorrow";
 
-        return html `
+    return html`
       <div class="day-toggle">
         <div class="toggle-button ${activeClass}" @click=${this._toggleDayView}>
           <div class="toggle-indicator"></div>
@@ -603,45 +1049,88 @@ class PriceTimelineCard extends LitElement {
         </div>
       </div>
         `
-    }
-    
-    
-    _toggleDayView(){
-        this._dayOffset = this._dayOffset===0?1:0;
-        this.requestUpdate();
-    }
-    
-    _renderSlider(data, currentIndex){
-       return html ` 
+  }
+
+  // --------------------
+  //SLIDER
+  //---------------------
+  _renderSlider(data, currentIndex) {
+    return html` 
         <div class="slider-container">
            <input type="range" min="0" max="${data.length - 1}" .value="${currentIndex}" @input="${this._onSliderChange}" />
         </div>
        `
+  }
+
+  // --------------------
+  //CHEAPTIMES
+  //---------------------
+  _renderCheapTimes(futurePhases) {
+    if (Object.keys(futurePhases).length > 0) {
+      return html`
+            <div class="cheap-phases">
+              <table>
+                <thead>
+                  <tr>
+                    <th>${localize("label_day", this._lang)}</th>
+                    <th>${localize("label_start", this._lang)}</th>
+                    <th>${localize("label_end", this._lang)}</th>
+                    <th>${localize("label_duration", this._lang)}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${Object.entries(futurePhases).map(([day, phases]) =>
+        phases.map((p) => {
+          const start = new Date(p.start);
+          const end = new Date(p.end);
+          const durationMs = end - start;
+          const mins = Math.round(durationMs / 60000);
+          const hours = Math.floor(mins / 60);
+          const rmins = mins % 60;
+          const durationStr = `${hours}h ${rmins}m`;
+
+          return html`
+                        <tr>
+                          <td>${day}</td>
+                          <td>${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
+                          <td>${end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
+                          <td>${durationStr}</td>
+                        </tr>
+                      `;
+        })
+      )}
+                </tbody>
+              </table>
+            </div>
+          `;
     }
+  }
 
 
-     //TIMELINE
-    _renderTimeline(data, currentIndex, avg, lang) {
-        const now = new Date();
-        const slotMinutes = data.length > 1 ? Math.round((new Date(data[1].start_time) - new Date(data[0].start_time)) / 60000) : 60;
-        const minutes = now.getMinutes();
-        const progress = slotMinutes === 60 ? (minutes / slotMinutes) : ((minutes % slotMinutes) / 15);
+  // --------------------
+  //TIMELINE
+  //---------------------
+  _renderTimeline(data, currentIndex, avg, lang) {
+    const now = new Date();
+    const slotMinutes = data.length > 1 ? Math.round((new Date(data[1].start_time) - new Date(data[0].start_time)) / 60000) : 60;
+    const minutes = now.getMinutes();
+    const progress = slotMinutes === 60 ? (minutes / slotMinutes) : ((minutes % slotMinutes) / 15);
 
-          const currentPrice = data[currentIndex].price_per_kwh;
-          const formattedPriceTL = ((currentPrice * 100).toFixed(1))
-            .replace('.', ',')
-            .replace(/,0$/, '');
+    const currentPrice = data[currentIndex].price_per_kwh;
+    const formattedPriceTL = ((currentPrice * 100).toFixed(1))
+      .replace('.', ',')
+      .replace(/,0$/, '');
 
-          const { min, max } = this._getPriceRange(data);
-          const format = (value) =>
-            ((value * 100).toFixed(1))
-              .replace('.', ',')
-              .replace(/,0$/, '');
-        
-        let timeLabel = this._getDataTimeLabel(data, currentIndex);
+    const { min, max } = this._getPriceRange(data);
+    const format = (value) =>
+      ((value * 100).toFixed(1))
+        .replace('.', ',')
+        .replace(/,0$/, '');
+
+    let timeLabel = this._getDataTimeLabel(data, currentIndex);
 
 
-        return html`
+    return html`
             <div class="header">
                 <div class="header-left">
                     <div class="time">${timeLabel}</div>
@@ -657,406 +1146,154 @@ class PriceTimelineCard extends LitElement {
             </div>
             <div class="timeline">
                 ${data.map((d, i) => {
-                    const color = this._roundCent(d.price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)";
-                    const faded = i < currentIndex ? "faded" : "";
-                    const marker = (i === currentIndex && (currentIndex != 0 || this._dayOffset === 0) ) ? "marker" : "";
-                    const prevColor = i > 0 ? (this._roundCent(data[i - 1].price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)") : null;
-                    const nextColor = i < data.length - 1 ? (this._roundCent(data[i + 1].price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)") : null;
-                    let borderRadius = "";
-                    if (prevColor !== color) borderRadius += "border-top-left-radius:10px; border-bottom-left-radius:10px;";
-                    if (nextColor !== color) borderRadius += "border-top-right-radius:10px; border-bottom-right-radius:10px;";
-                    return html`<div class="slot ${faded} ${marker}" style="background:${color};${borderRadius};--progress:${i === currentIndex ? progress : 0}"></div>`;
-                })}
+      const color = this._roundCent(d.price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)";
+      const faded = i < currentIndex ? "faded" : "";
+      const marker = (i === currentIndex && (currentIndex != 0 || this._dayOffset === 0)) ? "marker" : "";
+      const prevColor = i > 0 ? (this._roundCent(data[i - 1].price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)") : null;
+      const nextColor = i < data.length - 1 ? (this._roundCent(data[i + 1].price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)") : null;
+      let borderRadius = "";
+      if (prevColor !== color) borderRadius += "border-top-left-radius:10px; border-bottom-left-radius:10px;";
+      if (nextColor !== color) borderRadius += "border-top-right-radius:10px; border-bottom-right-radius:10px;";
+      return html`<div class="slot ${faded} ${marker}" style="background:${color};${borderRadius};--progress:${i === currentIndex ? progress : 0}"></div>`;
+    })}
             </div>
             <div class="scale">
                 ${Array.from({ length: 25 }).map((_, i) => {
-                    const showHour = i % 6 === 0 || i === 24;
-                    return html`
+      const showHour = i % 6 === 0 || i === 24;
+      return html`
                         <div class="tick">
                             <div class="dot ${showHour ? "" : "faded"}"></div>
                             ${showHour ? html`<div class="hour">${String(i % 24).padStart(2, "0")}</div>` : ""}
                         </div>`;
-                })}
+    })}
             </div>
-            ${this.config.day_switch? this._renderToggler(lang) : ""}
-            ${this.config.slider ? this._renderSlider(data, currentIndex) : ""}
         `;
-    }
+  }
 
-    _generateChart(data, currentIndex, average, lang){
-        const rawData = data;
-        const parsed = rawData.map(d => ({
-        time: new Date(d.start_time),
-        cent: d.price_per_kwh * 100
-      }));
-      parsed.sort((a,b)=>a.time-b.time);
-    
-      const start = parsed[0].time;
-      const end = parsed[parsed.length-1].time;
-      const now = new Date();
-      const hasTomorrow = rawData.some(d => new Date(d.start_time).getDate() !== start.getDate());
-          const width = 500;
-          const height = 300;
-          const margin = {left:42,right:20,top:30,bottom:30};
-          const innerW = width - margin.left - margin.right;
-          const innerH = height - margin.top - margin.bottom;
-        
-          const min = Math.min(...parsed.map(p=>p.cent))*0.9;
-          const max = Math.max(...parsed.map(p=>p.cent))*1.05;
-        
-          const xFor = t => margin.left + ((t - start)/(end-start))*innerW;
-          const yFor = v => margin.top + innerH - ((v-min)/(max-min))*innerH;
-        
-          const svgNS = "http://www.w3.org/2000/svg";
-          const svg = document.createElementNS(svgNS,"svg");
-          svg.setAttribute("viewBox",`0 0 ${width} ${height}`);
-        
-          // --- Y- ---
-          const style = getComputedStyle(this);
+  // --------------------
+  //CIRCLE
+  //---------------------
+  _renderCircle(data, currentIndex, avg, lang) {
+    const currentData = data[currentIndex];
+    let currentPrice = currentData.price_per_kwh;
+    const formattedPrice = (currentPrice * 100).toFixed(0);
+    currentPrice = this._roundCent(currentPrice);
+    const radius = 65;
+    const minPrice = Math.min(...data.map(d => d.price_per_kwh));
+    const maxPrice = Math.max(...data.map(d => d.price_per_kwh));
+    const rawRatio = (currentPrice - minPrice) / (maxPrice - minPrice || 1);
+    const ratio = 0.05 + rawRatio * 0.9;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference * (1 - ratio);
+    const circleColor = currentPrice > avg ? "var(--orange)" : "var(--turquoise)";
+    const timeLabel = this._getDataTimeLabel(data, currentIndex);
 
-          function toRgbString(color) {
-              if (!color) return "255,255,255"; // fallback
-            
-              color = color.trim();
-            
-              // rgb(...) ,  rgba(...) 
-              if (/^rgba?\(/i.test(color)) {
-                const match = color.match(/\d+,\s*\d+,\s*\d+/);
-                return match ? match[0] : "255,255,255";
-              }
-            
-              // Hex
-              if (/^#([a-f\d]{3}|[a-f\d]{6})$/i.test(color)) {
-                let hex = color.replace(
-                  /^#([a-f\d])([a-f\d])([a-f\d])$/i,
-                  "#$1$1$2$2$3$3"
-                );
-                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-                return result
-                  ? `${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)}`
-                  : "255,255,255";
-              }
-            
-              //color names ( "lightgray", ... ) parsing by browser
-              const temp = document.createElement("div");
-              temp.style.color = color;
-              document.body.appendChild(temp);
-            
-              const cs = getComputedStyle(temp).color; 
-              document.body.removeChild(temp);
-            
-              const match = cs.match(/\d+,\s*\d+,\s*\d+/);
-              return match ? match[0] : "255,255,255";
-          }
-          
-          const color = toRgbString(style.getPropertyValue("--card-subtle").trim() || "255,255,255");
-          const step = Math.round((max-min)/5);
-          for(let v=Math.round(min); v<=Math.round(max); v+=step){
-            const y = yFor(v);
-            const line = document.createElementNS(svgNS,"line");
-            line.setAttribute("x1",margin.left);
-            line.setAttribute("x2",width-margin.right);
-            line.setAttribute("y1",y);
-            line.setAttribute("y2",y);
-            line.setAttribute("stroke", `rgba(${color}, 0.2)`);
-            svg.appendChild(line);
-        
-            const txt = document.createElementNS(svgNS,"text");
-            txt.setAttribute("x",8);
-            txt.setAttribute("fill","var(--card-text)");
-            txt.setAttribute("y",y+4);
-            txt.setAttribute("class","axis-label");
-            txt.textContent=Math.round(v);
-            svg.appendChild(txt);
-          }
-        
-          // --- X- ---
-          const totalHours = Math.ceil((end-start)/3600000);
-          for(let h=0; h<=totalHours; h+=(hasTomorrow?4:2)){
-            const t = new Date(start.getTime()+h*3600000);
-            const x = xFor(t);
-            const txt = document.createElementNS(svgNS,"text");
-            txt.setAttribute("x",x);
-            txt.setAttribute("y",height-6);
-            txt.setAttribute("text-anchor","middle");
-            txt.setAttribute("class","time-label");
-            txt.setAttribute("fill","var(--card-text)");
-            txt.textContent=String(t.getHours()).padStart(2,"0");
-            svg.appendChild(txt);
-          }
-        
-          // --- Plot  ---
-          const pts = parsed.map(p=>({x:xFor(p.time),y:yFor(p.cent),v:p.cent,time:p.time}));
-          let d = `M${pts[0].x},${pts[0].y}`;
-          for(let i=1;i<pts.length;i++){
-            const curr = pts[i];
-            d += ` H${curr.x} V${curr.y}`;
-          }
-        
-          // Past faded
-          const grad = document.createElementNS(svgNS,"linearGradient");
-          grad.setAttribute("id","lineGradient");
-          grad.setAttribute("gradientUnits","userSpaceOnUse");
-          grad.setAttribute("x1",margin.left);
-          grad.setAttribute("x2",width-margin.right);
-        
-          grad.innerHTML = pts.map(p=>{
-            const offset = ((p.x-margin.left)/innerW)*100;
-            const color = p.v > average ? "var(--orange)" : "var(--turquoise)";
-            const past = p.time < now ? 0.25 : 1;
-            return `<stop offset="${offset}%" stop-color="${color}" stop-opacity="${past}" />`;
-          }).join("");
-          svg.prepend(grad);
-        
-          const path = document.createElementNS(svgNS,"path");
-          path.setAttribute("d",d);
-          path.setAttribute("fill","none");
-          path.setAttribute("stroke","url(#lineGradient)");
-          path.setAttribute("stroke-width","2.6");
-          svg.appendChild(path);
-        
-          // average line
-          const yAvg = yFor(average);
-          const avgLine = document.createElementNS(svgNS,"line");
-          avgLine.setAttribute("x1",margin.left);
-          avgLine.setAttribute("x2",width-margin.right);
-          avgLine.setAttribute("y1",yAvg);
-          avgLine.setAttribute("y2",yAvg);
-          avgLine.setAttribute("stroke",`rgba(${color}, 0.35)`);
-          avgLine.setAttribute("stroke-dasharray","4 3");
-          avgLine.setAttribute("stroke-width", 2);
-          svg.appendChild(avgLine);
-        
-          
-        // Midnight
-        let midnight = new Date(start.getFullYear(), start.getMonth(), start.getDate()+1);
-        const xMid = xFor(midnight);
-        const vLine = document.createElementNS(svgNS,"line");
-        vLine.setAttribute("x1",xMid);
-        vLine.setAttribute("x2",xMid);
-        vLine.setAttribute("y1",margin.top);
-        vLine.setAttribute("y2",height-margin.bottom);
-        vLine.setAttribute("stroke",`rgba(${color}, 0.3)`);
-        vLine.setAttribute("stroke-width","1.2");
-        vLine.setAttribute("stroke-width", 2);
-        svg.appendChild(vLine);
-        
-       // now line
-        const xNowTime = xFor(new Date(data[currentIndex].start_time));
-        const vLine2 = document.createElementNS(svgNS,"line");
-        vLine2.setAttribute("x1",xNowTime);
-        vLine2.setAttribute("x2",xNowTime);
-        vLine2.setAttribute("y1",margin.top);
-        vLine2.setAttribute("y2",height-margin.bottom);
-        vLine2.setAttribute("stroke",`rgba(${color}, 0.5)`);
-        vLine2.setAttribute("stroke-width","1.2");
-        vLine2.setAttribute("stroke-dasharray","3 3"); 
-        vLine2.setAttribute("stroke-width", 2);
-        svg.appendChild(vLine2);
-        
-        // labels today, tomorrow , yesterday
-        const yLabel = margin.top - 6;
-        if(hasTomorrow){
-          const leftLabel = document.createElementNS(svgNS,"text");
-          leftLabel.setAttribute("x", xMid - innerW/4);
-          leftLabel.setAttribute("y", yLabel);
-          leftLabel.setAttribute("fill","var(--card-text)");
-          leftLabel.setAttribute("font-size","12px");
-          leftLabel.setAttribute("font-weight","600");
-          leftLabel.setAttribute("text-anchor","middle");
-          leftLabel.textContent= (now >= new Date(data[data.length/2].start_time))?localize("editor_start_yesterday", lang):localize("editor_start_today", lang);
-          svg.appendChild(leftLabel);
-        
-          const rightLabel = document.createElementNS(svgNS,"text");
-          rightLabel.setAttribute("x", xMid + innerW/4);
-          rightLabel.setAttribute("y", yLabel);
-          rightLabel.setAttribute("fill","var(--card-text)");
-          rightLabel.setAttribute("font-size","12px");
-          rightLabel.setAttribute("font-weight","600");
-          rightLabel.setAttribute("text-anchor","middle");
-          rightLabel.textContent=(now >= new Date(data[data.length/2].start_time))?localize("editor_start_today", lang):localize("editor_start_tomorrow", lang);
-          svg.appendChild(rightLabel);
-        } else {
-          const todayLabel = document.createElementNS(svgNS,"text");
-          todayLabel.setAttribute("x", margin.left + innerW/2);
-          todayLabel.setAttribute("y", yLabel);
-          todayLabel.setAttribute("fill","var(--card-text)");
-          todayLabel.setAttribute("font-size","12px");
-          todayLabel.setAttribute("font-weight","600");
-          todayLabel.setAttribute("text-anchor","middle");
-          todayLabel.textContent= (start.getDate() === now.getDate()-1)?localize("editor_start_yesterday",lang):localize("editor_start_today", lang);
-          svg.appendChild(todayLabel);
-        }
-        if (now >= start && now <= end) {
-
-            const cx = xFor(new Date(data[currentIndex].start_time))
-            const cy = yFor(data[currentIndex].price_per_kwh*100)
-  
-            const color = (data[currentIndex].price_per_kwh*100) > average ? "--orange" : "--turquoise";
-            const circle = document.createElementNS(svgNS,"circle");
-            circle.setAttribute("cx",cx);
-            circle.setAttribute("cy",cy);
-            circle.setAttribute("r",8);
-            circle.setAttribute("fill",`rgba(${toRgbString(style.getPropertyValue(color).trim() || "255,255,255")}, 0.4`);
-            svg.appendChild(circle);
-
-             const circle2 = document.createElementNS(svgNS,"circle");
-            circle2.setAttribute("cx",cx);
-            circle2.setAttribute("cy",cy);
-            circle2.setAttribute("r",4);
-            circle2.setAttribute("fill","#ffffff");
-            svg.appendChild(circle2);
-            
-            const circle3 = document.createElementNS(svgNS,"circle");
-            circle3.setAttribute("cx",cx);
-            circle3.setAttribute("cy",cy);
-            circle3.setAttribute("r",2);
-            circle3.setAttribute("fill", `var(${color})`);
-            svg.appendChild(circle3);
-            
-        }
-           
-         function markMinMax(svg, points, dayStart, dayEnd) {
-            const dayPoints = points.filter(p => p.time >= dayStart && p.time < dayEnd);
-            if(dayPoints.length === 0) return;
-        
-            const minP = dayPoints.reduce((a,b)=>a.v<b.v?a:b);
-            const maxP = dayPoints.reduce((a,b)=>a.v>b.v?a:b);
-
-        
-            [minP, maxP].forEach(p=>{
-              const yOffset =  p.v > average ? p.y - 8 : p.y + 16;
-              const color = p.v > average ? "var(--orange)" : "var(--turquoise)";
-              const color2 = p.v < average ? "var(--orange)" : "var(--turquoise)";
-        
-              const circle = document.createElementNS(svgNS,"circle");
-              circle.setAttribute("cx", p.x);
-              circle.setAttribute("cy", p.y);
-              circle.setAttribute("r", 5);
-              circle.setAttribute("fill", color);
-              circle.setAttribute("opacity","0.85");
-              svg.appendChild(circle);
-              
-              
-              const circle2 = document.createElementNS(svgNS,"circle");
-              circle2.setAttribute("cx", p.x);
-              circle2.setAttribute("cy", p.y);
-              circle2.setAttribute("r", 2);
-              circle2.setAttribute("fill", color2);
-              circle2.setAttribute("opacity","0.85");
-              svg.appendChild(circle2);
-        
-              const text = document.createElementNS(svgNS,"text");
-              text.setAttribute("x", p.x);
-              text.setAttribute("y", yOffset);
-              text.setAttribute("text-anchor","middle");
-              text.setAttribute("fill","var(--card-text)");
-              text.setAttribute("font-size","13px");
-              text.setAttribute("font-weight","600");
-              text.textContent = p.v.toFixed(1);
-              svg.appendChild(text);
-            });
-          }
-
-            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const todayEnd = new Date(todayStart);
-            todayEnd.setDate(todayEnd.getDate() + 1);
-            
-            const tomorrowStart = new Date(todayEnd);
-            const tomorrowEnd = new Date(tomorrowStart);
-            tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
-        
-            markMinMax(svg, pts, todayStart, todayEnd);
-            markMinMax(svg, pts, tomorrowStart, tomorrowEnd);
-
-          return svg;
-        
-    }
-    
-    //CHART
-    _renderChart(data, currentIndex, avg, lang){
-        const circleColor = data[currentIndex].price_per_kwh > avg ? "var(--orange)" : "var(--turquoise)";
-         return html`
-                <div>
-                    <h3 style="margin: 0px">${localize("label_average_price", lang)}: <span id="avgText">${(avg*100).toFixed(1)} ${this._getCurrency(lang).name}</span></h3>
-                    <h5 style="margin: 0px; color:${circleColor}">${localize("label_price", lang)}: <span>${(data[currentIndex].price_per_kwh*100).toFixed(1)} ${this._getCurrency(lang).name} (${this._getDataTimeLabel(data, currentIndex)})</span></h5>
+    return html`
+            <div class="circle-container">
+                <svg width="150" height="150">
+                    <circle cx="75" cy="75" r="${radius}" stroke="var(--card-dot)" stroke-width="10" fill="none" opacity="0.2"></circle>
+                    <circle cx="75" cy="75" r="${radius}" stroke="${circleColor}" stroke-width="10" fill="none"
+                        stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"></circle>
+                </svg>
+                <div class="circle-text">
+                    <div class="price">
+                        <span class="value">${formattedPrice}</span>
+                        <span class="unit">${this._getCurrency(lang).name}</span>
+                    </div>
+                    <div class="time">${timeLabel}</div>
                 </div>
-                ${this._generateChart(data, currentIndex, avg*100, lang)}
-                ${this.config.slider ? this._renderSlider(data, currentIndex) : ""}
+            </div>
+        `;
+  }
+
+  // --------------------
+  //CHART
+  //---------------------
+  _renderChart(data, currentIndex, avg, lang) {
+    const circleColor = data[currentIndex].price_per_kwh > avg ? "var(--orange)" : "var(--turquoise)";
+    return html`
+                <div>
+                    <h3 style="margin: 0px">${localize("label_average_price", lang)}: <span id="avgText">${(avg * 100).toFixed(1)} ${this._getCurrency(lang).name}</span></h3>
+                    <h5 style="margin: 0px; color:${circleColor}">${localize("label_price", lang)}: <span>${(data[currentIndex].price_per_kwh * 100).toFixed(1)} ${this._getCurrency(lang).name} (${this._getDataTimeLabel(data, currentIndex)})</span></h5>
+                </div>
+                ${this._generateChart(data, currentIndex, avg * 100, lang)}
           `
-        ;
+      ;
+  }
+
+  // ---------------------
+  // RENDER
+  // ---------------------
+  render() {
+    if (!this._hass) return html``;
+    const lang = this._lang;
+
+    const entity = this._hass.states[this.config.price];
+
+    //read average parameter
+    let avg = undefined;
+    const avgTemp = this.config.average;
+    if (avgTemp && this._hass.states[avgTemp]) {
+      avg = parseFloat(this._hass.states[avgTemp].state);
+    } else if (!isNaN(parseFloat(avgTemp))) {
+      avg = parseFloat(avgTemp);
     }
 
-     // ---------------------
-     // RENDER
-     // ---------------------
-    render() {
-        if (!this._hass) return html``;
-        const lang = this._lang;
+    // no data attribute
+    if (!entity || !entity.attributes?.data) {
+      return html`<ha-card>${this._renderNoAttributes(lang)}</ha-card>`;
+    }
 
-        const entity = this._hass.states[this.config.price];
+    let offset = (this.config.view === "graph") ? 2 : this._dayOffset;
+    const data = this._getDataForOffset(entity, offset);
+    //calculate average
+    if (avg === undefined) {
+      avg = this._calculateAveragePrice(data);
+    }
 
-        //read average parameter
-        let avg = undefined;
-        const avgTemp = this.config.average;
-        if (avgTemp && this._hass.states[avgTemp]) {
-          avg = parseFloat(this._hass.states[avgTemp].state);
-        } else if (!isNaN(parseFloat(avgTemp))) {
-          avg = parseFloat(avgTemp);
-        }
+    // no data
+    if (!data.length) {
+      return html`<ha-card>${this._renderNoData(lang)}</ha-card>`;
+    }
+    // no price per kwh attribute or wrong format
+    if (!this._hasPriceData(data)) {
+      return html`<ha-card>${this._renderNoPrices(lang)}</ha-card>`;
+    }
 
-        // no data attribute
-        if (!entity || !entity.attributes?.data) {
-            return html`<ha-card>${this._renderNoAttributes(lang)}</ha-card>`;
-        }
+    const currentIndex = this.config.slider
+      ? (typeof this.selectedIndex === "number" ? this.selectedIndex : this._getCurrentDataIndex(data, new Date()))
+      : this._getCurrentDataIndex(data, new Date());
 
-        let offset = (this.config.view === "graph")?2:this._dayOffset;
-        const data = this._getDataForOffset(entity, offset);
-        //calculate average
-        if (avg === undefined) {
-          avg = this._calculateAveragePrice(data);
-        }
-        
-        // no data
-        if (!data.length) {
-            return html`<ha-card>${this._renderNoData(lang)}</ha-card>`;
-        }
-        // no price per kwh attribute or wrong format
-        if (!this._hasPriceData(data)) {
-            return html`<ha-card>${this._renderNoPrices(lang)}</ha-card>`;
-        }
-        
-        const currentIndex = this.config.slider
-            ? (typeof this.selectedIndex === "number" ? this.selectedIndex : this._getCurrentDataIndex(data, new Date()))
-            : this._getCurrentDataIndex(data, new Date());
+    let cardContent;
+    switch (this.config.view) {
+      case "timeline":
+        cardContent = this._renderTimeline(data, currentIndex, avg, lang);
+        break;
+      case "circle":
+        cardContent = this._renderCircle(data, currentIndex, avg, lang);
+        break;
+      case "graph":
+        cardContent = this._renderChart(data, currentIndex, avg, lang);
+        break;
+      default:
+        cardContent = this._renderTimeline(data, currentIndex, avg, lang);
+    }
 
-        let cardContent;
-        switch (this.config.view){
-            case "timeline":
-                cardContent = this._renderTimeline(data, currentIndex, avg, lang);
-                break;
-            case "circle":
-                cardContent= this._renderCircle(data, currentIndex, avg, lang);
-                break;
-            case "graph":
-                cardContent = this._renderChart(data, currentIndex, avg, lang);
-                break;
-            default:
-                cardContent = this._renderTimeline(data, currentIndex, avg, lang);
-        }
-
-        return html`
+    return html`
             <ha-card>
                 <div>
                     ${cardContent}
+                    ${this.config.cheap_times === true ? this._renderCheapTimes(this._getCheapPhasesPerDay(data)) : ""}
+                    ${this.config.day_switch && this.config.view !== "graph" ? this._renderToggler(lang) : ""}
+                    ${this.config.slider ? this._renderSlider(data, currentIndex) : ""}
                 </div>
             </ha-card>
          `;
-    }
+  }
 
-    static getConfigElement() {
-        return document.createElement("price-timeline-card-editor");
-    }
+  static getConfigElement() {
+    return document.createElement("price-timeline-card-editor");
+  }
 }
 
 customElements.define("price-timeline-card", PriceTimelineCard);
@@ -1065,126 +1302,127 @@ customElements.define("price-timeline-card", PriceTimelineCard);
 // EDITOR
 // ---------------------
 class PriceTimelineEditor extends LitElement {
-    static get properties() {
-        return {
-            _config: { type: Object },
-            hass: { type: Object },
-        };
-    }
+  static get properties() {
+    return {
+      _config: { type: Object },
+      hass: { type: Object },
+    };
+  }
 
-    setConfig(config) {
-        this._config = {
-            price: "",
-            view: "timeline",
-            theme: "light",
-            slider: false,
-            day_switch: true,
-            ...config,
-        };
-    }
-    set hass(hass) {
-        this._hass = hass;
-    }
+  setConfig(config) {
+    this._config = {
+      price: "",
+      view: "timeline",
+      theme: "light",
+      slider: false,
+      day_switch: true,
+      ...config,
+    };
+  }
+  set hass(hass) {
+    this._hass = hass;
+  }
 
-    
-    _valueChanged(ev) {
-       if (!this._config || !this._hass) return;
-       const newData = ev.detail.value;
-       const newConfig = { ...this._config, ...newData };
-       newConfig.view = newData.view_mode;
-       delete newConfig.view_mode; 
 
-       this._config = newConfig;
+  _valueChanged(ev) {
+    if (!this._config || !this._hass) return;
+    const newData = ev.detail.value;
+    const newConfig = { ...this._config, ...newData };
+    newConfig.view = newData.view_mode;
+    delete newConfig.view_mode;
 
-       this.dispatchEvent(
-         new CustomEvent("config-changed", {
-           detail: { config: this._config },
-           bubbles: true,
-           composed: true,
-         })
-       );
-    }
-    
-    
-    render() {
-      if (!this._config) return html``;
-      const lang = this._hass?.language || "en";
-    
-      let mode = this._config.view;
-    
-     const schema = [
-        { name: "price", selector: { entity: { domain: "sensor" } } },
-        { name: "average", selector: { number: { min: 0, max: 2, step: 0.001, mode: "box" } } },
-        {
-          name: "view_mode",
-          selector: {
-            select: {
-              mode: "dropdown",
-              options: [
-                { value: "timeline", label: "Timeline" },
-                { value: "circle", label: "Circle" },
-                { value: "graph", label: "Graph" },
-              ],
-            },
+    this._config = newConfig;
+
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: this._config },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+
+  render() {
+    if (!this._config) return html``;
+    const lang = this._hass?.language || "en";
+
+    let mode = this._config.view;
+
+    const schema = [
+      { name: "price", selector: { entity: { domain: "sensor" } } },
+      { name: "average", selector: { number: { min: 0, max: 2, step: 0.001, mode: "box" } } },
+      {
+        name: "view_mode",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "timeline", label: "Timeline" },
+              { value: "circle", label: "Circle" },
+              { value: "graph", label: "Graph" },
+            ],
           },
         },
-        { name: "slider", selector: { boolean: {} } },
-      ];
-    
-      if(mode === "circle" || mode ==="timeline"){
-          schema.push(
-           { name: "day_switch", selector: { boolean: {} } },
-           {
-              name: "start_view",
-              selector: {
-                select: {
-                  options: [
-                    { value: "today", label: localize("editor_start_today", lang) },
-                    { value: "tomorrow", label: localize("editor_start_tomorrow", lang) },
-                  ],
-                },
-              },
-         },
-                
-         );
-      }
-    
+      },
+      { name: "slider", selector: { boolean: {} } },
+      { name: "cheap_times", selector: { boolean: {} } },
+    ];
+
+    if (mode === "circle" || mode === "timeline") {
       schema.push(
+        { name: "day_switch", selector: { boolean: {} } },
         {
-          name: "theme",
+          name: "start_view",
           selector: {
             select: {
               options: [
-                { value: "light", label: localize("editor_theme_light", lang) },
-                { value: "dark", label: localize("editor_theme_dark", lang) },
-                { value: "theme", label: localize("editor_theme_system", lang) },
+                { value: "today", label: localize("editor_start_today", lang) },
+                { value: "tomorrow", label: localize("editor_start_tomorrow", lang) },
               ],
             },
           },
         },
-        {
-          name: "currency",
-          selector: {
-            object: {
-              properties: {
-                name: { selector: { text: {} } },
-                symbol: { selector: { text: {} } },
-              },
+
+      );
+    }
+
+    schema.push(
+      {
+        name: "theme",
+        selector: {
+          select: {
+            options: [
+              { value: "light", label: localize("editor_theme_light", lang) },
+              { value: "dark", label: localize("editor_theme_dark", lang) },
+              { value: "theme", label: localize("editor_theme_system", lang) },
+            ],
+          },
+        },
+      },
+      {
+        name: "currency",
+        selector: {
+          object: {
+            properties: {
+              name: { selector: { text: {} } },
+              symbol: { selector: { text: {} } },
             },
           },
-        }
-      );
-    
-      const data = {
-        ...this._config,
-        view_mode: mode, 
-        currency: {
-            name: this._config?.currency?.name || "",
-            symbol: this._config?.currency?.symbol || "",
-         },
-      };
-    
-      return html`
+        },
+      }
+    );
+
+    const data = {
+      ...this._config,
+      view_mode: mode,
+      currency: {
+        name: this._config?.currency?.name || "",
+        symbol: this._config?.currency?.symbol || "",
+      },
+    };
+
+    return html`
         <ha-form
           .hass=${this._hass}
           .data=${data}
@@ -1194,28 +1432,28 @@ class PriceTimelineEditor extends LitElement {
           @value-changed=${this._valueChanged}
         ></ha-form>
       `;
-    }
+  }
 
 
-    _computeLabel(schemaEntry) {
-      const lang = this._hass?.language || "en";
-      const key = schemaEntry.name;
-      const text = localize(`editor_${key}_label`, lang);
-    
-      if (!text || text.startsWith("editor_")) {
-        return key.charAt(0).toUpperCase() + key.slice(1);
-      }
-      return text;
-    }
+  _computeLabel(schemaEntry) {
+    const lang = this._hass?.language || "en";
+    const key = schemaEntry.name;
+    const text = localize(`editor_${key}_label`, lang);
 
-    _computeHelper(schemaEntry) {
-      const lang = this._hass?.language || "en";
-      const key = schemaEntry.name;
-      const text = localize(`editor_${key}_desc`, lang);
-    
-      if (!text || text.startsWith("editor_")) return "";
-      return text;
+    if (!text || text.startsWith("editor_")) {
+      return key.charAt(0).toUpperCase() + key.slice(1);
     }
+    return text;
+  }
+
+  _computeHelper(schemaEntry) {
+    const lang = this._hass?.language || "en";
+    const key = schemaEntry.name;
+    const text = localize(`editor_${key}_desc`, lang);
+
+    if (!text || text.startsWith("editor_")) return "";
+    return text;
+  }
 
 }
 
@@ -1223,8 +1461,8 @@ customElements.define("price-timeline-card-editor", PriceTimelineEditor);
 
 window.customCards = window.customCards || [];
 window.customCards.push({
-    type: "price-timeline-card",
-    name: "HA Price Timeline Card",
-    preview: false,
-    description: "Card that visualizes hourly or quarter-hourly energy prices on a timeline, circle or graph",
+  type: "price-timeline-card",
+  name: "HA Price Timeline Card",
+  preview: false,
+  description: "Card that visualizes hourly or quarter-hourly energy prices on a timeline, circle or graph",
 });

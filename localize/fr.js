@@ -7,6 +7,10 @@ export default {
   label_time_nextDay: "Plage de prix",
   label_average_price: "Prix moyen",
   label_price: "Prix",
+  label_day: "Jour",
+  label_start: "Début",
+  label_end: "Fin",
+  label_duration: "Durée",
   unit_cent: "Centimes",
   label_tomorrow_price: "Prix de demain",
   editor_theme_light: "Clair",
@@ -28,4 +32,6 @@ export default {
   editor_currency_desc: "Indiquez une devise personnalisée",
   editor_day_switch_label: "Commutateur de jour",
   editor_day_switch_desc: "Affiche ou masque le commutateur de jour",
+  editor_cheap_times_label: "Heures avantageuses",
+  editor_cheap_times_desc: "Affichage des intervalles horaires avantageux",
 };

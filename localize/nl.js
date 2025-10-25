@@ -9,6 +9,10 @@ export default {
   label_tomorrow_price: "Prijs van morgen",
   label_average_price: "Gemiddelde prijs",
   label_price: "Prijs",
+  label_day: "Dag",
+  label_start: "Start",
+  label_end: "Einde",
+  label_duration: "Duur",
   editor_theme_light: "Licht",
   editor_theme_dark: "Donker",
   editor_theme_system: "Systeem",
@@ -28,4 +32,6 @@ export default {
   editor_currency_desc: "Eigen valuta opgeven",
   editor_day_switch_label: "Dagwisselaar",
   editor_day_switch_desc: "Toont of verbergt de dagwisselaar",
+  editor_cheap_times_label: "Goedkope tijden",
+  editor_cheap_times_desc: "Weergave van goedkope tijdsintervallen",
 };

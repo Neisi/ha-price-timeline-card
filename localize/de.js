@@ -9,6 +9,10 @@ export default {
   label_tomorrow_price: "Morgiger Preis",
   label_average_price: "Durchschnittspreis",
   label_price: "Preis",
+  label_day: "Tag",
+  label_start: "Start",
+  label_end: "Ende",
+  label_duration: "Dauer",
   editor_theme_light: "Hell",
   editor_theme_dark: "Dunkel",
   editor_theme_system: "System",
@@ -28,4 +32,6 @@ export default {
   editor_currency_desc: "Eigene Währung angeben",
   editor_day_switch_label: "Tag Umschalter",
   editor_day_switch_desc: "Blendet den Tag Umschalter ein oder aus",
+  editor_cheap_times_label: "Günstige Zeiten",
+  editor_cheap_times_desc: "Anzeige von günstigen Zeitintervallen",
 };

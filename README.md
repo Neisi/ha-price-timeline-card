@@ -24,6 +24,9 @@ Inspired by Tibber, this custom card visualizes **hourly energy prices** on a ti
 - ⚡ Simple configuration
 - 🔄 toggle today / tomorrow
 
+The card can highlight the cheapest times of the day if you want (you can activated it in configuration - see chapter parameters)
+
+![cheap_time_slots](./assets/examples/light_graph_cheap_times.png) 
 
 ### Timeline mode:
 By default, the card shows a **timeline view** of today's electricity prices.  
@@ -284,6 +287,15 @@ Here are the available parameters for this Lovelace card.
 | `day_switch`    | boolean  | `false` | Show day toggler to change between today and tomorrow (for circle and timeline view only) |
 | `start_view`    | string  | `today` | Determines which view is shown by default when the card loads. Possible values: `today`, `tomorrow` (for circle and timeline view only) |
 | `currency` | object | `{ name: "Cent", symbol: "¢" }` | Defines how the unit for energy price is displayed. Use this to customize the currency subunit (e.g., "Cent", "Öre", ...). The `name` is shown as text label. The `symbol` field is currently optional and not yet displayed in all views, but **it is recommended to set it** since it may be used by future features or visualizations. |
+| `cheap_times`    | boolean  | `false` | The card highlights the cheapest times of the day in graph and the phases are displayed in text form (for all views).  
+- Prices are analyzed **per day**, so each day is evaluated on its own.
+- For each day, prices are normalized using a relative scale: relative price = (price - daily minimum) / (daily maximum - daily minimum)
+
+- The **lowest ~25%** of all intervals for that day are considered *cheap*.
+- Consecutive cheap intervals are grouped into longer time phases.
+- Only **future** phases are shown, and only if they last **at least 1 hour**.
+|
+
 ---
 
 ### 📘 Configuration
@@ -301,7 +313,7 @@ price: sensor.epex_price
 
 circle view and dark theme:
 ```yaml
-type: custom:price-timeline-card-test
+type: custom:price-timeline-card
 price: sensor.epex_price
 theme: dark
 view: circle
@@ -328,6 +340,15 @@ currency:
   symbol: öre
 ```
 ![Visual Editor](./assets/examples/currency.png)
+
+graph view with cheap time visualization:
+```yaml
+type: custom:price-timeline-card
+price: sensor.tibber_prices
+view: graph
+cheap_times: true
+```
+![cheap_time_slots](./assets/examples/light_graph_cheap_times.png) 
 
 #### Configuration with Visual Editor
 

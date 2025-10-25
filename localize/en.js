@@ -7,6 +7,10 @@ export default {
   label_time_nextDay: "Price range",
   label_average_price: "Average Price",
   label_price: "Price",
+  label_day: "Day",
+  label_start: "Start",
+  label_end: "End",
+  label_duration: "Duration",
   unit_cent: "Cent",
   label_tomorrow_price: "Tomorrow's price",
   editor_theme_light: "Light",
@@ -28,4 +32,6 @@ export default {
   editor_currency_desc: "Specify a custom currency",
   editor_day_switch_label: "Day Switch",
   editor_day_switch_desc: "Shows or hides the day switch",
+  editor_cheap_times_label: "Cheap Times",
+  editor_cheap_times_desc: "Display of cheap time intervals",
 };
