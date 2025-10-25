@@ -287,14 +287,7 @@ Here are the available parameters for this Lovelace card.
 | `day_switch`    | boolean  | `false` | Show day toggler to change between today and tomorrow (for circle and timeline view only) |
 | `start_view`    | string  | `today` | Determines which view is shown by default when the card loads. Possible values: `today`, `tomorrow` (for circle and timeline view only) |
 | `currency` | object | `{ name: "Cent", symbol: "¢" }` | Defines how the unit for energy price is displayed. Use this to customize the currency subunit (e.g., "Cent", "Öre", ...). The `name` is shown as text label. The `symbol` field is currently optional and not yet displayed in all views, but **it is recommended to set it** since it may be used by future features or visualizations. |
-| `cheap_times`    | boolean  | `false` | The card highlights the cheapest times of the day in graph and the phases are displayed in text form (for all views).  
-- Prices are analyzed **per day**, so each day is evaluated on its own.
-- For each day, prices are normalized using a relative scale: relative price = (price - daily minimum) / (daily maximum - daily minimum)
-
-- The **lowest ~25%** of all intervals for that day are considered *cheap*.
-- Consecutive cheap intervals are grouped into longer time phases.
-- Only **future** phases are shown, and only if they last **at least 1 hour**.
-|
+| `cheap_times` | boolean | `false` | The card highlights the cheapest times of the day in graph and the phases are displayed in text form. <ul><li>Prices are analyzed <strong>per day</strong>, so each day is evaluated on its own.</li><li>For each day, prices are normalized using a relative scale: <code>relative price = (price - daily minimum) / (daily maximum - daily minimum)</code>.</li><li>The <strong>lowest ~25%</strong> of all intervals for that day are considered <em>cheap</em>.</li><li>Consecutive cheap intervals are grouped into longer time phases.</li><li>Only <strong>future</strong> phases are shown, and only if they last <strong>at least 1 hour</strong>.</li></ul> |
 
 ---
 
