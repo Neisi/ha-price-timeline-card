@@ -291,6 +291,28 @@ Here are the available parameters for this Lovelace card.
 | `cheap_time_sources` | array of strings | `undefined` | Optional and only available in yaml mode. If `cheap_times: true` is set, you can provide a list of sensors/entity IDs to define the cheap time periods manually instead of letting the card calculate them automatically. This is useful if you already use helpers from the [ha_epex_spot_sensor](https://github.com/mampfes/ha_epex_spot_sensor) add-on – you can pass those sensor IDs here to display their cheap periods directly.|
 
 ---
+### Actions
+| Name       | Type    | Default | Description |
+|------------|---------|---------|-------------|
+| `tap_action` | object | `undefined` | Optional action when tapping the card. See [Home Assistant Actions](https://www.home-assistant.io/dashboards/actions/). Supported actions: `more-info`, `toggle`, `call-service`, `navigate`, `url`, `assist`. Requires `tap_target` for entity-based actions. |
+| `tap_target` | string | `undefined` | The entity ID that is the target of the `tap_action`. Required for entity-based actions (`toggle`, `more-info`, `call-service`). Not needed for navigation/url actions. |
+
+**Examples:**
+
+Toggle an input boolean:
+
+```yaml
+tap_action:
+  action: toggle
+tap_target: input_boolean.my_helper
+```
+Open more-info dialog:
+```yaml
+tap_action:
+  action: more-info
+tap_target: sensor.tibber_prices
+```
+---
 
 ### 📘 Configuration
 
