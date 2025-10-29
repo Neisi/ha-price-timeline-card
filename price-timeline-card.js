@@ -1115,7 +1115,7 @@ class PriceTimelineCard extends LitElement {
     const activeClass = this._dayOffset === 0 ? "active-today" : "active-tomorrow";
 
     return html`
-      <div class="day-toggle">
+      <div class="day-toggle no-tap">
         <div class="toggle-button ${activeClass}" @click=${this._toggleDayView}>
           <div class="toggle-indicator"></div>
           <span class="today">${localize("editor_start_today", lang)}</span>
@@ -1130,7 +1130,7 @@ class PriceTimelineCard extends LitElement {
   //---------------------
   _renderSlider(data, currentIndex) {
     return html` 
-        <div class="slider-container">
+        <div class="slider-container no-tap">
            <input type="range" min="0" max="${data.length - 1}" .value="${currentIndex}" @input="${this._onSliderChange}" />
         </div>
        `
@@ -1365,17 +1365,41 @@ class PriceTimelineCard extends LitElement {
       default:
         cardContent = this._renderTimeline(data, currentIndex, avg, lang);
     }
+
     return html`
-            <ha-card>
+        <ha-card>
                 <div>
-                    ${cardContent}
-                    ${this.config.cheap_times === true ? this._renderCheapTimes(dataIntervalls) : ""}
-                    ${this.config.day_switch && this.config.view !== "graph" ? this._renderToggler(lang) : ""}
-                    ${this.config.slider ? this._renderSlider(data, currentIndex) : ""}
+                  <div @pointerup=${(ev) => this._onTap(ev)}>${cardContent}</div>
+                  ${this.config.cheap_times === true ? this._renderCheapTimes(dataIntervalls) : ""}
+                  ${this.config.day_switch && this.config.view !== "graph" ? this._renderToggler(lang) : ""}
+                  ${this.config.slider ? this._renderSlider(data, currentIndex) : ""}
                 </div>
-            </ha-card>
+           </ha-card>
          `;
   }
+  
+  _onTap(ev) {
+      const ignoreTags = ["BUTTON", "A", "INPUT", "SELECT", "TEXTAREA", "HA-SLIDER"];
+      if (ignoreTags.includes(ev.target.tagName)) return;
+      if (ev.target.closest(".no-tap")) return; 
+      this._handleAction("tap");
+  }
+  
+ _handleAction(actionType) {
+      if (!this.config.tap_action || !this.config.tap_target) return;
+      const event = new CustomEvent("hass-action", {
+        bubbles: true,
+        composed: true,
+        detail: {
+          config: {
+            entity: this.config.tap_target,
+            tap_action: this.config.tap_action,
+          },
+          action: actionType,
+        },
+      });
+      this.dispatchEvent(event);
+    }
 
   static getConfigElement() {
     return document.createElement("price-timeline-card-editor");
