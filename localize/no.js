@@ -13,6 +13,7 @@ export default {
   label_start: "Start",
   label_end: "Slutt",
   label_duration: "Varighet",
+  label_name: "Navn",
   editor_theme_light: "Lyst",
   editor_theme_dark: "Mørkt",
   editor_theme_system: "System",

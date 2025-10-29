@@ -89,9 +89,9 @@ class PriceTimelineCard extends LitElement {
   }
 
   updated(changedProps) {
-    if (changedProps.has('theme')) {
-      this._applyTheme();
-    }
+       if (changedProps.has('theme')) {
+        this._applyTheme();
+      }
   }
 
   static get styles() {
@@ -224,7 +224,7 @@ class PriceTimelineCard extends LitElement {
               font-variant-numeric:tabular-nums;
               text-align:center;
             }
-            /* Kreis */
+        
              .circle-container {
               position:relative;
               width:150px;
@@ -374,7 +374,6 @@ class PriceTimelineCard extends LitElement {
             }
             
              .cheap-phases {
-              margin-top: 0.3rem;
               font-size: 0.75em; 
               opacity: 0.85;    
             }
@@ -404,6 +403,8 @@ class PriceTimelineCard extends LitElement {
             .cheap-phases tr + tr td {
               border-top: 1px solid rgba(120,120,120, 0.08);
             }
+            
+                        
         `;
   }
 
@@ -613,7 +614,6 @@ class PriceTimelineCard extends LitElement {
   _getCheapPhasesPerDay(data) {
     const dayFlags = this._getCheapIntervalsPerDay(data);
 
-
     const timesByDay = {};
     for (const item of data) {
       const d = new Date(item.start_time);
@@ -676,6 +676,7 @@ class PriceTimelineCard extends LitElement {
           filtered.push({
             start: _localISODateTime(start),
             end: _localISODateTime(end),
+            name: phase.name?phase.name: "-",
           });
         }
       }
@@ -687,8 +688,55 @@ class PriceTimelineCard extends LitElement {
 
     return result;
   }
+  
+  
+     _buildGroupedTimeSlots(offset) {
+      const result = {};
+      this.config.cheap_time_sources.forEach((entityId) => {
+        const entity = this._hass.states[entityId];
+        if (!entity || !entity.attributes || !Array.isArray(entity.attributes.data)) return;
+    
+        const name = entity.attributes.friendly_name || entityId;
+    
+        entity.attributes.data.forEach((item) => {
+          const start = item.start_time;
+          const end = item.end_time;
+    
+          const dateKey = start.substring(0, 10); // "YYYY-MM-DD"
+    
+          if (!result[dateKey]) {
+            result[dateKey] = [];
+          }
+    
+          result[dateKey].push({
+            start,
+            end,
+            name,
+          });
+        });
+      });
 
-  _generateChart(data, currentIndex, average, lang) {
+      Object.keys(result).forEach((date) => {
+        result[date].sort((a, b) => new Date(a.start) - new Date(b.start));
+      });
+      
+      let futurePhases = this._getFutureCheapPhases(result);
+      if(offset === 0 || offset === 1){
+      const date = new Date();
+        date.setDate(date.getDate() + offset);
+        const key = date.toISOString().split('T')[0];
+        const filteredPhases = Object.keys(futurePhases)
+          .filter(k => k === key)
+          .reduce((obj, k) => {
+            obj[k] = futurePhases[k];
+            return obj;
+          }, {});
+        return filteredPhases;
+      }
+      return futurePhases;
+    }
+    
+  _generateChart(data,dataIntervalls, currentIndex, average, lang) {
     const rawData = data;
     const parsed = rawData.map(d => ({
       time: new Date(d.start_time),
@@ -702,7 +750,7 @@ class PriceTimelineCard extends LitElement {
     const hasTomorrow = rawData.some(d => new Date(d.start_time).getDate() !== start.getDate());
     const width = 500;
     const height = 300;
-    const margin = { left: 42, right: 20, top: 30, bottom: 45 };
+    const margin = { left: 42, right: 20, top: 30, bottom: 35 };
     const innerW = width - margin.left - margin.right;
     const innerH = height - margin.top - margin.bottom;
 
@@ -860,7 +908,7 @@ class PriceTimelineCard extends LitElement {
     svg.appendChild(vLine2);
 
     // labels today, tomorrow , yesterday
-    const yLabel = margin.top - 6;
+    const yLabel = margin.top - 15;
     if (hasTomorrow) {
       const leftLabel = document.createElementNS(svgNS, "text");
       leftLabel.setAttribute("x", xMid - innerW / 4);
@@ -869,9 +917,8 @@ class PriceTimelineCard extends LitElement {
       leftLabel.setAttribute("font-size", "12px");
       leftLabel.setAttribute("font-weight", "600");
       leftLabel.setAttribute("text-anchor", "middle");
-      leftLabel.textContent = (now >= new Date(data[data.length / 2].start_time)) ? localize("editor_start_yesterday", lang) : localize("editor_start_today", lang);
+      leftLabel.textContent = (now >= new Date(data[Math.round(data.length/2)].start_time)) ? localize("editor_start_yesterday", lang) : localize("editor_start_today", lang);
       svg.appendChild(leftLabel);
-
       const rightLabel = document.createElementNS(svgNS, "text");
       rightLabel.setAttribute("x", xMid + innerW / 4);
       rightLabel.setAttribute("y", yLabel);
@@ -879,7 +926,7 @@ class PriceTimelineCard extends LitElement {
       rightLabel.setAttribute("font-size", "12px");
       rightLabel.setAttribute("font-weight", "600");
       rightLabel.setAttribute("text-anchor", "middle");
-      rightLabel.textContent = (now >= new Date(data[data.length / 2].start_time)) ? localize("editor_start_today", lang) : localize("editor_start_tomorrow", lang);
+      rightLabel.textContent = (now >= new Date(data[Math.round(data.length/2)].start_time)) ? localize("editor_start_today", lang) : localize("editor_start_tomorrow", lang);
       svg.appendChild(rightLabel);
     } else {
       const todayLabel = document.createElementNS(svgNS, "text");
@@ -921,25 +968,6 @@ class PriceTimelineCard extends LitElement {
 
     }
 
-    //phases
-    if (this.config.cheap_times === true) {
-      const dataIntervalls = this._getCheapPhasesPerDay(data);
-      for (const [day, intervals] of Object.entries(dataIntervalls)) {
-        for (const { start, end } of intervals) {
-          const rect = document.createElementNS(svgNS, "rect");
-          rect.setAttribute("x", xFor(new Date(start)));
-          rect.setAttribute("y", margin.top);
-          rect.setAttribute("width", (xFor(new Date(end)) - xFor(new Date(start))));
-          rect.setAttribute("height", height - margin.bottom - margin.top);
-          rect.setAttribute("fill", "var(--turquoise)");
-          rect.setAttribute("fill-opacity", "0.2");
-          //svg.appendChild(rect);
-          svg.insertBefore(rect, svg.firstChild);
-        }
-      }
-    }
-
-
     function markMinMax(svg, points, dayStart, dayEnd) {
       const dayPoints = points.filter(p => p.time >= dayStart && p.time < dayEnd);
       if (dayPoints.length === 0) return;
@@ -949,7 +977,7 @@ class PriceTimelineCard extends LitElement {
 
 
       [minP, maxP].forEach(p => {
-        const yOffset = p.v > average ? p.y - 8 : p.y + 16;
+        const yOffset = p.v > average ? p.y - 8 : p.y + 14;
         const color = p.v > average ? "var(--orange)" : "var(--turquoise)";
         const color2 = p.v < average ? "var(--orange)" : "var(--turquoise)";
 
@@ -981,6 +1009,52 @@ class PriceTimelineCard extends LitElement {
         svg.appendChild(text);
       });
     }
+    
+   // phases
+    let index = 0;
+    if (this.config.cheap_times === true) {
+      const labelsByStart = {}; 
+    
+      for (const [day, intervals] of Object.entries(dataIntervalls)) {
+        for (const { start, end } of intervals) {
+          const startDate = new Date(start);
+          const endDate = new Date(end);
+          const xStart = xFor(startDate);
+          const xEnd = xFor(endDate);
+    
+          const rect = document.createElementNS(svgNS, "rect");
+          rect.setAttribute("x", xStart);
+          rect.setAttribute("y", margin.top);
+          rect.setAttribute("width", xEnd - xStart);
+          rect.setAttribute("height", height - margin.bottom - margin.top);
+          rect.setAttribute("fill", "var(--turquoise)");
+          rect.setAttribute("fill-opacity", "0.2");
+          svg.insertBefore(rect, svg.firstChild);
+    
+
+          const key = startDate.getTime(); 
+          if (!labelsByStart[key]) {
+            labelsByStart[key] = [];
+          }
+          labelsByStart[key].push(++index);
+        }
+      }
+    
+
+      for (const [key, indices] of Object.entries(labelsByStart)) {
+        const startDate = new Date(Number(key));
+        const label = document.createElementNS(svgNS, "text");
+        label.setAttribute("x", xFor(startDate) + 5);
+        label.setAttribute("y", yFor(max) - 2);
+        label.setAttribute("fill", "var(--card-text)");
+        label.setAttribute("font-size", "10px");
+        label.setAttribute("font-weight", "600");
+        label.setAttribute("text-anchor", "middle");
+        label.textContent = "(" + indices.join(", ") + ")";
+        svg.appendChild(label);
+      }
+    }
+    
 
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(todayStart);
@@ -1002,7 +1076,7 @@ class PriceTimelineCard extends LitElement {
     this._dayOffset = this._dayOffset === 0 ? 1 : 0;
     this.requestUpdate();
   }
-
+  
 
   // --------------------
   //NO DATA
@@ -1061,21 +1135,25 @@ class PriceTimelineCard extends LitElement {
         </div>
        `
   }
+  
 
   // --------------------
   //CHEAPTIMES
   //---------------------
   _renderCheapTimes(futurePhases) {
+    let index = 0;
     if (Object.keys(futurePhases).length > 0) {
       return html`
             <div class="cheap-phases">
               <table>
                 <thead>
                   <tr>
+                    <th></th>
                     <th>${localize("label_day", this._lang)}</th>
                     <th>${localize("label_start", this._lang)}</th>
                     <th>${localize("label_end", this._lang)}</th>
                     <th>${localize("label_duration", this._lang)}</th>
+                    <th>${localize("label_name", this._lang)}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1088,13 +1166,14 @@ class PriceTimelineCard extends LitElement {
           const hours = Math.floor(mins / 60);
           const rmins = mins % 60;
           const durationStr = `${hours}h ${rmins}m`;
-
           return html`
                         <tr>
+                          <td>(${++index})</td>
                           <td>${day}</td>
                           <td>${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
                           <td>${end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
                           <td>${durationStr}</td>
+                          <td>${p.name}</td>
                         </tr>
                       `;
         })
@@ -1209,14 +1288,14 @@ class PriceTimelineCard extends LitElement {
   // --------------------
   //CHART
   //---------------------
-  _renderChart(data, currentIndex, avg, lang) {
+  _renderChart(data, dataIntervalls, currentIndex, avg, lang) {
     const circleColor = data[currentIndex].price_per_kwh > avg ? "var(--orange)" : "var(--turquoise)";
     return html`
                 <div>
                     <h3 style="margin: 0px">${localize("label_average_price", lang)}: <span id="avgText">${(avg * 100).toFixed(1)} ${this._getCurrency(lang).name}</span></h3>
                     <h5 style="margin: 0px; color:${circleColor}">${localize("label_price", lang)}: <span>${(data[currentIndex].price_per_kwh * 100).toFixed(1)} ${this._getCurrency(lang).name} (${this._getDataTimeLabel(data, currentIndex)})</span></h5>
                 </div>
-                ${this._generateChart(data, currentIndex, avg * 100, lang)}
+                ${this._generateChart(data, dataIntervalls, currentIndex, avg * 100, lang)}
           `
       ;
   }
@@ -1264,6 +1343,14 @@ class PriceTimelineCard extends LitElement {
       ? (typeof this.selectedIndex === "number" ? this.selectedIndex : this._getCurrentDataIndex(data, new Date()))
       : this._getCurrentDataIndex(data, new Date());
 
+    let dataIntervalls;
+    if(this.config.cheap_time_sources){
+        dataIntervalls = this._buildGroupedTimeSlots(offset);
+    }else{
+        dataIntervalls = this._getCheapPhasesPerDay(data);
+    }
+
+    
     let cardContent;
     switch (this.config.view) {
       case "timeline":
@@ -1273,17 +1360,16 @@ class PriceTimelineCard extends LitElement {
         cardContent = this._renderCircle(data, currentIndex, avg, lang);
         break;
       case "graph":
-        cardContent = this._renderChart(data, currentIndex, avg, lang);
+        cardContent = this._renderChart(data, dataIntervalls, currentIndex, avg, lang);
         break;
       default:
         cardContent = this._renderTimeline(data, currentIndex, avg, lang);
     }
-
     return html`
             <ha-card>
                 <div>
                     ${cardContent}
-                    ${this.config.cheap_times === true ? this._renderCheapTimes(this._getCheapPhasesPerDay(data)) : ""}
+                    ${this.config.cheap_times === true ? this._renderCheapTimes(dataIntervalls) : ""}
                     ${this.config.day_switch && this.config.view !== "graph" ? this._renderToggler(lang) : ""}
                     ${this.config.slider ? this._renderSlider(data, currentIndex) : ""}
                 </div>

@@ -11,6 +11,7 @@ export default {
   label_start: "Inicio",
   label_end: "Fin",
   label_duration: "Duración",
+  label_name: "Nombre",
   unit_cent: "Céntimos",
   label_tomorrow_price: "Precio de mañana",
   editor_theme_light: "Claro",

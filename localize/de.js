@@ -13,6 +13,7 @@ export default {
   label_start: "Start",
   label_end: "Ende",
   label_duration: "Dauer",
+  label_name: "Name",
   editor_theme_light: "Hell",
   editor_theme_dark: "Dunkel",
   editor_theme_system: "System",

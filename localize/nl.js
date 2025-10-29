@@ -13,6 +13,7 @@ export default {
   label_start: "Start",
   label_end: "Einde",
   label_duration: "Duur",
+  label_name: "Naam",
   editor_theme_light: "Licht",
   editor_theme_dark: "Donker",
   editor_theme_system: "Systeem",

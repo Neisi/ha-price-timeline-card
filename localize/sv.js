@@ -13,6 +13,7 @@ export default {
   label_start: "Start",
   label_end: "Slut",
   label_duration: "Varaktighet",
+  label_name: "Namn",
   editor_theme_light: "Ljus",
   editor_theme_dark: "Mörk",
   editor_theme_system: "System",

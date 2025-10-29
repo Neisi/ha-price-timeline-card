@@ -11,6 +11,7 @@ export default {
   label_start: "Start",
   label_end: "End",
   label_duration: "Duration",
+  label_name: "Name",
   unit_cent: "Cent",
   label_tomorrow_price: "Tomorrow's price",
   editor_theme_light: "Light",
