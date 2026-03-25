@@ -496,13 +496,17 @@ class PriceTimelineCard extends LitElement {
       yesterday.setDate(now.getDate() - 1);
       const tomorrow = new Date(now);
       tomorrow.setDate(now.getDate() + 1);
+
+      const graphDays = this.config.graph_days || ["today", "tomorrow"];
+      const dayMap = {
+        yesterday: yesterday,
+        today: now,
+        tomorrow: tomorrow,
+      };
+
       const filtered = allData.filter(item => {
         const date = new Date(item.start_time);
-        return (
-          this._isSameDay(date, yesterday) ||
-          this._isSameDay(date, now) ||
-          this._isSameDay(date, tomorrow)
-        );
+        return graphDays.some(day => this._isSameDay(date, dayMap[day]));
       });
       return filtered;
     } else if (offset === 1 || offset === 0) {
@@ -748,6 +752,7 @@ class PriceTimelineCard extends LitElement {
     const end = parsed[parsed.length - 1].time;
     const now = new Date();
     const hasTomorrow = rawData.some(d => new Date(d.start_time).getDate() !== start.getDate());
+    const hasMultipleDays = hasTomorrow;
     const width = 500;
     const height = 300;
     const margin = { left: 42, right: 20, top: 30, bottom: 35 };
@@ -825,7 +830,7 @@ class PriceTimelineCard extends LitElement {
 
     // --- X- ---
     const totalHours = Math.ceil((end - start) / 3600000);
-    for (let h = 0; h <= totalHours; h += (hasTomorrow ? 4 : 2)) {
+    for (let h = 0; h <= totalHours; h += (hasMultipleDays ? 4 : 2)) {
       const t = new Date(start.getTime() + h * 3600000);
       const x = xFor(t);
       const txt = document.createElementNS(svgNS, "text");
@@ -881,18 +886,25 @@ class PriceTimelineCard extends LitElement {
     svg.appendChild(avgLine);
 
 
-    // Midnight
-    let midnight = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
-    const xMid = xFor(midnight);
-    const vLine = document.createElementNS(svgNS, "line");
-    vLine.setAttribute("x1", xMid);
-    vLine.setAttribute("x2", xMid);
-    vLine.setAttribute("y1", margin.top);
-    vLine.setAttribute("y2", height - margin.bottom);
-    vLine.setAttribute("stroke", `rgba(${color}, 0.3)`);
-    vLine.setAttribute("stroke-width", "1.2");
-    vLine.setAttribute("stroke-width", 2);
-    svg.appendChild(vLine);
+    // Midnight lines between days
+    const uniqueDays = [...new Set(parsed.map(p => {
+      const d = p.time;
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    }))].sort();
+    const midnights = [];
+    for (let i = 0; i < uniqueDays.length - 1; i++) {
+      const midnightTime = new Date(uniqueDays[i + 1]);
+      midnights.push(midnightTime);
+      const xMid = xFor(midnightTime);
+      const vLine = document.createElementNS(svgNS, "line");
+      vLine.setAttribute("x1", xMid);
+      vLine.setAttribute("x2", xMid);
+      vLine.setAttribute("y1", margin.top);
+      vLine.setAttribute("y2", height - margin.bottom);
+      vLine.setAttribute("stroke", `rgba(${color}, 0.3)`);
+      vLine.setAttribute("stroke-width", 2);
+      svg.appendChild(vLine);
+    }
 
     // now line
     const xNowTime = xFor(new Date(data[currentIndex].start_time));
@@ -907,37 +919,30 @@ class PriceTimelineCard extends LitElement {
     vLine2.setAttribute("stroke-width", 2);
     svg.appendChild(vLine2);
 
-    // labels today, tomorrow , yesterday
+    // labels for each day
     const yLabel = margin.top - 15;
-    if (hasTomorrow) {
-      const leftLabel = document.createElementNS(svgNS, "text");
-      leftLabel.setAttribute("x", xMid - innerW / 4);
-      leftLabel.setAttribute("y", yLabel);
-      leftLabel.setAttribute("fill", "var(--card-text)");
-      leftLabel.setAttribute("font-size", "12px");
-      leftLabel.setAttribute("font-weight", "600");
-      leftLabel.setAttribute("text-anchor", "middle");
-      leftLabel.textContent = (now >= new Date(data[Math.round(data.length/2)].start_time)) ? localize("editor_start_yesterday", lang) : localize("editor_start_today", lang);
-      svg.appendChild(leftLabel);
-      const rightLabel = document.createElementNS(svgNS, "text");
-      rightLabel.setAttribute("x", xMid + innerW / 4);
-      rightLabel.setAttribute("y", yLabel);
-      rightLabel.setAttribute("fill", "var(--card-text)");
-      rightLabel.setAttribute("font-size", "12px");
-      rightLabel.setAttribute("font-weight", "600");
-      rightLabel.setAttribute("text-anchor", "middle");
-      rightLabel.textContent = (now >= new Date(data[Math.round(data.length/2)].start_time)) ? localize("editor_start_today", lang) : localize("editor_start_tomorrow", lang);
-      svg.appendChild(rightLabel);
-    } else {
-      const todayLabel = document.createElementNS(svgNS, "text");
-      todayLabel.setAttribute("x", margin.left + innerW / 2);
-      todayLabel.setAttribute("y", yLabel);
-      todayLabel.setAttribute("fill", "var(--card-text)");
-      todayLabel.setAttribute("font-size", "12px");
-      todayLabel.setAttribute("font-weight", "600");
-      todayLabel.setAttribute("text-anchor", "middle");
-      todayLabel.textContent = (start.getDate() === now.getDate() - 1) ? localize("editor_start_yesterday", lang) : localize("editor_start_today", lang);
-      svg.appendChild(todayLabel);
+    const dayLabelKey = (dayTs) => {
+      const d = new Date(dayTs);
+      if (this._isSameDay(d, now)) return "editor_start_today";
+      const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+      if (this._isSameDay(d, yesterday)) return "editor_start_yesterday";
+      const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+      if (this._isSameDay(d, tomorrow)) return "editor_start_tomorrow";
+      return "editor_start_today";
+    };
+    // compute x-center for each day segment
+    const boundaries = [margin.left, ...midnights.map(m => xFor(m)), margin.left + innerW];
+    for (let i = 0; i < uniqueDays.length; i++) {
+      const cx = (boundaries[i] + boundaries[i + 1]) / 2;
+      const dayLabel = document.createElementNS(svgNS, "text");
+      dayLabel.setAttribute("x", cx);
+      dayLabel.setAttribute("y", yLabel);
+      dayLabel.setAttribute("fill", "var(--card-text)");
+      dayLabel.setAttribute("font-size", "12px");
+      dayLabel.setAttribute("font-weight", "600");
+      dayLabel.setAttribute("text-anchor", "middle");
+      dayLabel.textContent = localize(dayLabelKey(uniqueDays[i]), lang);
+      svg.appendChild(dayLabel);
     }
     if (now >= start && now <= end) {
 
@@ -1056,16 +1061,13 @@ class PriceTimelineCard extends LitElement {
     }
     
 
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(todayStart);
-    todayEnd.setDate(todayEnd.getDate() + 1);
-
-    const tomorrowStart = new Date(todayEnd);
-    const tomorrowEnd = new Date(tomorrowStart);
-    tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
-
-    markMinMax(svg, pts, todayStart, todayEnd);
-    markMinMax(svg, pts, tomorrowStart, tomorrowEnd);
+    // Mark min/max for each day in the data
+    for (const dayTs of uniqueDays) {
+      const dayStart = new Date(dayTs);
+      const dayEnd = new Date(dayTs);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      markMinMax(svg, pts, dayStart, dayEnd);
+    }
 
     return svg;
 
@@ -1441,6 +1443,11 @@ class PriceTimelineEditor extends LitElement {
     newConfig.view = newData.view_mode;
     delete newConfig.view_mode;
 
+    // Ensure at least one graph day is selected
+    if (Array.isArray(newConfig.graph_days) && newConfig.graph_days.length === 0) {
+      newConfig.graph_days = ["today"];
+    }
+
     this._config = newConfig;
 
     this.dispatchEvent(
@@ -1493,7 +1500,24 @@ class PriceTimelineEditor extends LitElement {
             },
           },
         },
+      );
+    }
 
+    if (mode === "graph") {
+      schema.push(
+        {
+          name: "graph_days",
+          selector: {
+            select: {
+              multiple: true,
+              options: [
+                { value: "yesterday", label: localize("editor_start_yesterday", lang) },
+                { value: "today", label: localize("editor_start_today", lang) },
+                { value: "tomorrow", label: localize("editor_start_tomorrow", lang) },
+              ],
+            },
+          },
+        },
       );
     }
 
@@ -1526,6 +1550,7 @@ class PriceTimelineEditor extends LitElement {
     const data = {
       ...this._config,
       view_mode: mode,
+      graph_days: this._config?.graph_days || ["today", "tomorrow"],
       currency: {
         name: this._config?.currency?.name || "",
         symbol: this._config?.currency?.symbol || "",

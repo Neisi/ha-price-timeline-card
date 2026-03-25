@@ -35,4 +35,6 @@ export default {
   editor_day_switch_desc: "Viser eller skjuler dagveksleren",
   editor_cheap_times_label: "Billige tider",
   editor_cheap_times_desc: "Visning av billige tidsintervaller",
+  editor_graph_days_label: "Synlige dager (Graf)",
+  editor_graph_days_desc: "Velg hvilke dager som skal vises i grafmodus",
 };

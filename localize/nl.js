@@ -35,4 +35,6 @@ export default {
   editor_day_switch_desc: "Toont of verbergt de dagwisselaar",
   editor_cheap_times_label: "Goedkope tijden",
   editor_cheap_times_desc: "Weergave van goedkope tijdsintervallen",
+  editor_graph_days_label: "Zichtbare dagen (Grafiek)",
+  editor_graph_days_desc: "Selecteer welke dagen in de grafiekmodus worden weergegeven",
 };

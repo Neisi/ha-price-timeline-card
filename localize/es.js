@@ -35,4 +35,6 @@ export default {
   editor_day_switch_desc: "Muestra u oculta el conmutador de día",
   editor_cheap_times_label: "Tiempos económicos",
   editor_cheap_times_desc: "Visualización de intervalos de tiempo económicos",
+  editor_graph_days_label: "Días visibles (Gráfico)",
+  editor_graph_days_desc: "Seleccione qué días mostrar en el modo gráfico",
 };

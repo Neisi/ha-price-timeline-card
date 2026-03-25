@@ -35,4 +35,6 @@ export default {
   editor_day_switch_desc: "Shows or hides the day switch",
   editor_cheap_times_label: "Cheap Times",
   editor_cheap_times_desc: "Display of cheap time intervals",
+  editor_graph_days_label: "Visible Days (Graph)",
+  editor_graph_days_desc: "Select which days to display in graph mode",
 };

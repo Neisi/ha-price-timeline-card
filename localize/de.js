@@ -35,4 +35,6 @@ export default {
   editor_day_switch_desc: "Blendet den Tag Umschalter ein oder aus",
   editor_cheap_times_label: "Günstige Zeiten",
   editor_cheap_times_desc: "Anzeige von günstigen Zeitintervallen",
+  editor_graph_days_label: "Sichtbare Tage (Graph)",
+  editor_graph_days_desc: "Auswahl welche Tage im Graph angezeigt werden sollen",
 };

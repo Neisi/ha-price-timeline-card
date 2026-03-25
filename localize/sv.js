@@ -35,4 +35,6 @@ export default {
   editor_day_switch_desc: "Visar eller döljer dagsväxlaren",
   editor_cheap_times_label: "Billiga tider",
   editor_cheap_times_desc: "Visning av billiga tidsintervall",
+  editor_graph_days_label: "Synliga dagar (Graf)",
+  editor_graph_days_desc: "Välj vilka dagar som ska visas i grafläget",
 };

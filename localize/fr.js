@@ -35,4 +35,6 @@ export default {
   editor_day_switch_desc: "Affiche ou masque le commutateur de jour",
   editor_cheap_times_label: "Heures avantageuses",
   editor_cheap_times_desc: "Affichage des intervalles horaires avantageux",
+  editor_graph_days_label: "Jours visibles (Graphique)",
+  editor_graph_days_desc: "Sélectionnez les jours à afficher en mode graphique",
 };
