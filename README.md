@@ -226,6 +226,15 @@ price: sensor.combined_nordpool_prices
 type: custom:price-timeline-card
 ```
 
+
+##### frank energie integration (!<u>optionally</u>!)
+The Frank Energie integration provides a sensor with a `prices` attribute containing hourly prices. The card automatically detects and supports this format - no template sensor needed!
+
+```yaml
+price: sensor.frank_energie_energy_market_price
+type: custom:price-timeline-card
+```
+
 ### HACS
 #### Community Store
 The card is available in HACS (Home Assistant Community Store).

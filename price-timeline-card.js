@@ -39,6 +39,44 @@ class PriceTimelineCard extends LitElement {
     this._animating = false;
   }
 
+  static get colorSchemes() {
+    return {
+      default: {
+        name: 'Default (Red/Green)',
+        colors: ['#45C669', '#C66445'],
+      },
+      energy_gradient: {
+        name: 'Energy Gradient',
+        colors: [
+          '#04822e',
+          '#12A141',
+          '#79B92C',
+          '#C4D81D',
+          '#F3DC0C',
+          '#EFA51E',
+          '#E76821',
+          '#DC182F',
+        ],
+      },
+      timeline: {
+        name: 'Timeline Colors',
+        colors: ['#1dbfac', '#ff832d'],
+      },
+      uptime_classic: {
+        name: 'Uptime Card Classic',
+        colors: ['#45C669', '#C6B145', '#C66445'],
+      },
+      blue_red: {
+        name: 'Blue to Red',
+        colors: ['#2196F3', '#FF5722'],
+      },
+      green_yellow_red: {
+        name: 'Traffic Light',
+        colors: ['#4CAF50', '#FFEB3B', '#F44336'],
+      },
+    };
+  }
+
   static get properties() {
     return {
       config: {},
@@ -116,29 +154,34 @@ class PriceTimelineCard extends LitElement {
               --orange:var(--color-orange-light);
               --turquoise:var(--color-turquoise-light);
             }
+
             ha-card {
               background:var(--card-bg);
               padding:16px;
               color:var(--card-text);
               text-align:center;
             }
+
             .header {
               display:flex;
               justify-content:space-between;
               align-items:flex-start;
             }
+
             .header-left {
               display:flex;
               flex-direction:column;
               align-items:flex-start;
               gap:0
             }
+
             .time {
               font-size:14px;
               color:var(--card-subtle);
               line-height:1.1;
               margin:0
             }
+
             .price {
               font-size:24px;
               font-weight:bold;
@@ -149,21 +192,25 @@ class PriceTimelineCard extends LitElement {
               align-items:baseline;
               justify-content:center;
             }
+
             .price .value {
               font-size:28px;
               font-weight:800;
             }
+
             .price .unit {
               font-size:14px;
               font-weight:normal;
               margin-left:6px;
               color:var(--card-text);
             }
+
             .label {
               font-size:14px;
               color:var(--card-subtle);
               text-align: right;
             }
+
             .timeline {
               display:flex;
               margin:8px 0;
@@ -173,11 +220,13 @@ class PriceTimelineCard extends LitElement {
               position:relative;
               z-index: 0;
             }
+
             .slot {
               flex:1;
               opacity:1;
               position:relative;
             }
+
             .slot.marker::after {
               content:"";
               position:absolute;
@@ -192,9 +241,11 @@ class PriceTimelineCard extends LitElement {
               box-shadow:0 0 4px rgba(0,0,0,0.3);
               z-index:1;
             }
+
             .faded {
               opacity:0.3;
             }
+
             .scale {
               display:grid;
               grid-template-columns:repeat(25,1fr);
@@ -205,11 +256,13 @@ class PriceTimelineCard extends LitElement {
               margin-left:calc(-0.5 * (100% / 24));
               margin-right:calc(-0.5 * (100% / 24));
             }
+
             .scale .tick {
               display:flex;
               flex-direction:column;
               align-items:center;
             }
+
             .scale .dot {
               width:4px;
               height:4px;
@@ -217,9 +270,11 @@ class PriceTimelineCard extends LitElement {
               background:var(--card-dot);
               margin-bottom:4px;
             }
+
             .scale .dot.faded {
               opacity:0.4;
             }
+
             .scale .hour {
               font-variant-numeric:tabular-nums;
               text-align:center;
@@ -231,9 +286,11 @@ class PriceTimelineCard extends LitElement {
               height:150px;
               margin:0 auto;
             }
+
             .circle-container svg {
               transform:rotate(-90deg);
             }
+
             .circle-text {
               position:absolute;
               top:50%;
@@ -241,24 +298,29 @@ class PriceTimelineCard extends LitElement {
               transform:translate(-50%,-50%);
               text-align:center;
             }
+
             .circle-text .value {
               font-size:28px;
               font-weight:bold;
               color:var(--card-text);
             }
+
             .circle-text .unit {
               font-size:16px;
               margin-left:4px;
               color:var(--card-text);
             }
+
             .circle-text .time {
               font-size:14px;
               color:var(--card-subtle);
               margin-top:4px;
             }
+
             .slider-container {
               margin-top:4px;
             }
+
             input[type="range"] {
               width:100%;
               height:6px;
@@ -268,6 +330,7 @@ class PriceTimelineCard extends LitElement {
               opacity:0.9;
               transition:background 0.3s;
             }
+
             input[type="range"]::-webkit-slider-thumb {
               width:18px;
               height:18px;
@@ -275,6 +338,7 @@ class PriceTimelineCard extends LitElement {
               background:var(--slider-color,var(--accent-color));
               cursor:pointer;
             }
+
             input[type="range"]::-moz-range-thumb {
               width:18px;
               height:18px;
@@ -282,6 +346,7 @@ class PriceTimelineCard extends LitElement {
               background:var(--slider-color,var(--accent-color));
               cursor:pointer;
             }
+
             /* --- No Data Ticker  --- */
             .ticker-container {
               width: 240px;
@@ -321,7 +386,6 @@ class PriceTimelineCard extends LitElement {
               align-items: center;
               margin-top: 12px;
             }
-            
 
             .toggle-button {
               position: relative;
@@ -336,8 +400,7 @@ class PriceTimelineCard extends LitElement {
               overflow: hidden;
               transition: background-color 0.3s;
             }
-            
-
+          
             .toggle-button span {
               flex: 1;
               text-align: center;
@@ -347,7 +410,6 @@ class PriceTimelineCard extends LitElement {
               z-index: 2;
               pointer-events: none;
             }
-            
 
             .toggle-indicator {
               position: absolute;
@@ -411,9 +473,10 @@ class PriceTimelineCard extends LitElement {
   setConfig(config) {
     if (!config.price) throw new Error(localize("missing_price", "en"));
     this.config = config;
-    this.theme = config.theme || "light";
+    this.theme = this.config.appearance_settings?.theme || "light";
+    this.colorScheme = this.config.appearance_settings?.color_scheme || "default";
     this.selectedIndex = undefined;
-    switch (config.start_view) {
+    switch (this.config.navigation_settings?.start_view) {
       case "tomorrow":
         this._dayOffset = 1;
         break;
@@ -489,7 +552,23 @@ class PriceTimelineCard extends LitElement {
   }
 
   _getDataForOffset(entity, offset = 0) {
-    const allData = entity?.attributes?.data || [];
+    // Support both formats: Tibber (data array) and Frank Energie (prices array)
+    let allData = entity?.attributes?.data || entity?.attributes?.prices || [];
+    
+    // Normalize Frank Energie format to Tibber format
+    allData = allData.map(item => {
+      if (item.from && item.till && item.price !== undefined) {
+        // Frank Energie format
+        return {
+          start_time: item.from,
+          end_time: item.till,
+          price_per_kwh: item.price
+        };
+      }
+      // Already in Tibber format
+      return item;
+    });
+    
     if (offset === 2) {
       const now = new Date();
       const yesterday = new Date(now);
@@ -547,6 +626,25 @@ class PriceTimelineCard extends LitElement {
     return (Math.round(Math.round(price_per_kwh * 100 * 10) / 10) / 100);
   }
 
+  _getColorForPrice(price, min, max) {
+    const schemes = PriceTimelineCard.colorSchemes;
+    const schemeName = this.colorScheme || 'default';
+    const scheme = schemes[schemeName] || schemes.default;
+    const colors = scheme.colors;
+    
+    // Normalize price between 0 and 1
+    const ratio = (price - min) / (max - min || 1);
+    
+    // For 2-color schemes: 0 = first color (cheap), 1 = last color (expensive)
+    if (colors.length === 2) {
+      return ratio <= 0.5 ? colors[0] : colors[1];
+    }
+    
+    // For multi-color schemes: interpolate through gradient
+    const index = Math.min(Math.floor(ratio * colors.length), colors.length - 1);
+    return colors[index];
+  }
+
   _getPriceRange(data) {
     if (!data || data.length === 0) {
       return { min: undefined, max: undefined };
@@ -567,17 +665,11 @@ class PriceTimelineCard extends LitElement {
 
   _getCurrency(lang = this.hass?.language || "en") {
     //default =cent
-    const defaultCurrency = {
-      name: localize("unit_cent", lang),
-      symbol: "¢",
-    };
+    const defaultCurrency = localize("unit_cent", lang);
 
     const cur = this.config.currency;
-    if (cur && (cur.name?.trim() || cur.symbol?.trim())) {
-      return {
-        name: cur.name?.trim() || defaultCurrency.name,
-        symbol: cur.symbol?.trim() || defaultCurrency.symbol,
-      };
+    if (cur && cur.trim()) {
+      return cur.trim();
     }
     return defaultCurrency;
   }
@@ -694,13 +786,17 @@ class PriceTimelineCard extends LitElement {
       const result = {};
       this.config.cheap_time_sources.forEach((entityId) => {
         const entity = this._hass.states[entityId];
-        if (!entity || !entity.attributes || !Array.isArray(entity.attributes.data)) return;
+        
+        // Support both formats: Tibber (data array) and Frank Energie (prices array)
+        const dataArray = entity?.attributes?.data || entity?.attributes?.prices || [];
+        if (!entity || !entity.attributes || !Array.isArray(dataArray)) return;
     
         const name = entity.attributes.friendly_name || entityId;
     
-        entity.attributes.data.forEach((item) => {
-          const start = item.start_time;
-          const end = item.end_time;
+        dataArray.forEach((item) => {
+          // Support both formats
+          const start = item.start_time || item.from;
+          const end = item.end_time || item.till;
     
           const dateKey = start.substring(0, 10); // "YYYY-MM-DD"
     
@@ -855,7 +951,10 @@ class PriceTimelineCard extends LitElement {
 
     grad.innerHTML = pts.map(p => {
       const offset = ((p.x - margin.left) / innerW) * 100;
-      const color = p.v > average ? "var(--orange)" : "var(--turquoise)";
+      const priceInKwh = p.v / 100;
+      const minPrice = Math.min(...parsed.map(pt => pt.cent)) / 100;
+      const maxPrice = Math.max(...parsed.map(pt => pt.cent)) / 100;
+      const color = this._getColorForPrice(priceInKwh, minPrice, maxPrice);
       const past = p.time < now ? 0.25 : 1;
       return `<stop offset="${offset}%" stop-color="${color}" stop-opacity="${past}" />`;
     }).join("");
@@ -944,12 +1043,14 @@ class PriceTimelineCard extends LitElement {
       const cx = xFor(new Date(data[currentIndex].start_time))
       const cy = yFor(data[currentIndex].price_per_kwh * 100)
 
-      const color = (data[currentIndex].price_per_kwh * 100) > average ? "--orange" : "--turquoise";
+      const minPrice = Math.min(...parsed.map(pt => pt.cent)) / 100;
+      const maxPrice = Math.max(...parsed.map(pt => pt.cent)) / 100;
+      const currentColor = this._getColorForPrice(data[currentIndex].price_per_kwh, minPrice, maxPrice);
       const circle = document.createElementNS(svgNS, "circle");
       circle.setAttribute("cx", cx);
       circle.setAttribute("cy", cy);
       circle.setAttribute("r", 8);
-      circle.setAttribute("fill", `rgba(${toRgbString(style.getPropertyValue(color).trim() || "255,255,255")}, 0.4`);
+      circle.setAttribute("fill", `rgba(${toRgbString(currentColor)}, 0.4`);
       svg.appendChild(circle);
 
       const circle2 = document.createElementNS(svgNS, "circle");
@@ -963,23 +1064,28 @@ class PriceTimelineCard extends LitElement {
       circle3.setAttribute("cx", cx);
       circle3.setAttribute("cy", cy);
       circle3.setAttribute("r", 2);
-      circle3.setAttribute("fill", `var(${color})`);
+      circle3.setAttribute("fill", currentColor);
       svg.appendChild(circle3);
 
     }
 
-    function markMinMax(svg, points, dayStart, dayEnd) {
+    const markMinMax = (svg, points, dayStart, dayEnd) => {
       const dayPoints = points.filter(p => p.time >= dayStart && p.time < dayEnd);
       if (dayPoints.length === 0) return;
 
       const minP = dayPoints.reduce((a, b) => a.v < b.v ? a : b);
       const maxP = dayPoints.reduce((a, b) => a.v > b.v ? a : b);
 
+      const minPrice = Math.min(...parsed.map(pt => pt.cent)) / 100;
+      const maxPrice = Math.max(...parsed.map(pt => pt.cent)) / 100;
 
       [minP, maxP].forEach(p => {
         const yOffset = p.v > average ? p.y - 8 : p.y + 14;
-        const color = p.v > average ? "var(--orange)" : "var(--turquoise)";
-        const color2 = p.v < average ? "var(--orange)" : "var(--turquoise)";
+        const priceInKwh = p.v / 100;
+        const color = this._getColorForPrice(priceInKwh, minPrice, maxPrice);
+        // Invert color for inner circle
+        const oppositeEnd = p.v > average ? minPrice : maxPrice;
+        const color2 = this._getColorForPrice(oppositeEnd, minPrice, maxPrice);
 
         const circle = document.createElementNS(svgNS, "circle");
         circle.setAttribute("cx", p.x);
@@ -1008,11 +1114,11 @@ class PriceTimelineCard extends LitElement {
         text.textContent = p.v.toFixed(1);
         svg.appendChild(text);
       });
-    }
+    };
     
    // phases
     let index = 0;
-    if (this.config.cheap_times === true) {
+    if (this.config.price_optimization?.cheap_times === true) {
       const labelsByStart = {}; 
     
       for (const [day, intervals] of Object.entries(dataIntervalls)) {
@@ -1089,7 +1195,7 @@ class PriceTimelineCard extends LitElement {
                 </svg>
             </div>
             <div class="no-data-text">${localize("no_data", lang)}</div>
-            ${this.config.day_switch ? this._renderToggler(lang) : ""}
+            ${this.config.navigation_settings?.day_switch ? this._renderToggler(lang) : ""}
         `;
   }
 
@@ -1215,7 +1321,7 @@ class PriceTimelineCard extends LitElement {
                     <div class="time">${timeLabel}</div>
                     <div class="price">
                         <span class="value">${formattedPriceTL}</span>
-                        <span class="unit">${this._getCurrency(lang).name}</span>
+                        <span class="unit">${this._getCurrency(lang)}</span>
                     </div>
                 </div style="display: grid">
                 <div>
@@ -1225,11 +1331,11 @@ class PriceTimelineCard extends LitElement {
             </div>
             <div class="timeline">
                 ${data.map((d, i) => {
-      const color = this._roundCent(d.price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)";
+      const color = this._getColorForPrice(d.price_per_kwh, min, max);
       const faded = i < currentIndex ? "faded" : "";
       const marker = (i === currentIndex && (currentIndex != 0 || this._dayOffset === 0)) ? "marker" : "";
-      const prevColor = i > 0 ? (this._roundCent(data[i - 1].price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)") : null;
-      const nextColor = i < data.length - 1 ? (this._roundCent(data[i + 1].price_per_kwh) > avg ? "var(--orange)" : "var(--turquoise)") : null;
+      const prevColor = i > 0 ? this._getColorForPrice(data[i - 1].price_per_kwh, min, max) : null;
+      const nextColor = i < data.length - 1 ? this._getColorForPrice(data[i + 1].price_per_kwh, min, max) : null;
       let borderRadius = "";
       if (prevColor !== color) borderRadius += "border-top-left-radius:10px; border-bottom-left-radius:10px;";
       if (nextColor !== color) borderRadius += "border-top-right-radius:10px; border-bottom-right-radius:10px;";
@@ -1264,7 +1370,7 @@ class PriceTimelineCard extends LitElement {
     const ratio = 0.05 + rawRatio * 0.9;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference * (1 - ratio);
-    const circleColor = currentPrice > avg ? "var(--orange)" : "var(--turquoise)";
+    const circleColor = this._getColorForPrice(currentPrice, minPrice, maxPrice);
     const timeLabel = this._getDataTimeLabel(data, currentIndex);
 
     return html`
@@ -1277,7 +1383,7 @@ class PriceTimelineCard extends LitElement {
                 <div class="circle-text">
                     <div class="price">
                         <span class="value">${formattedPrice}</span>
-                        <span class="unit">${this._getCurrency(lang).name}</span>
+                        <span class="unit">${this._getCurrency(lang)}</span>
                     </div>
                     <div class="time">${timeLabel}</div>
                 </div>
@@ -1292,8 +1398,8 @@ class PriceTimelineCard extends LitElement {
     const circleColor = data[currentIndex].price_per_kwh > avg ? "var(--orange)" : "var(--turquoise)";
     return html`
                 <div>
-                    <h3 style="margin: 0px">${localize("label_average_price", lang)}: <span id="avgText">${(avg * 100).toFixed(1)} ${this._getCurrency(lang).name}</span></h3>
-                    <h5 style="margin: 0px; color:${circleColor}">${localize("label_price", lang)}: <span>${(data[currentIndex].price_per_kwh * 100).toFixed(1)} ${this._getCurrency(lang).name} (${this._getDataTimeLabel(data, currentIndex)})</span></h5>
+                    <h3 style="margin: 0px">${localize("label_average_price", lang)}: <span id="avgText">${(avg * 100).toFixed(1)} ${this._getCurrency(lang)}</span></h3>
+                    <h5 style="margin: 0px; color:${circleColor}">${localize("label_price", lang)}: <span>${(data[currentIndex].price_per_kwh * 100).toFixed(1)} ${this._getCurrency(lang)} (${this._getDataTimeLabel(data, currentIndex)})</span></h5>
                 </div>
                 ${this._generateChart(data, dataIntervalls, currentIndex, avg * 100, lang)}
           `
@@ -1318,8 +1424,8 @@ class PriceTimelineCard extends LitElement {
       avg = parseFloat(avgTemp);
     }
 
-    // no data attribute
-    if (!entity || !entity.attributes?.data) {
+    // no data attribute - check for both data and prices attributes (Frank Energie support)
+    if (!entity || (!entity.attributes?.data && !entity.attributes?.prices)) {
       return html`<ha-card>${this._renderNoAttributes(lang)}</ha-card>`;
     }
 
@@ -1339,7 +1445,7 @@ class PriceTimelineCard extends LitElement {
       return html`<ha-card>${this._renderNoPrices(lang)}</ha-card>`;
     }
 
-    const currentIndex = this.config.slider
+    const currentIndex = this.config.display_settings?.slider
       ? (typeof this.selectedIndex === "number" ? this.selectedIndex : this._getCurrentDataIndex(data, new Date()))
       : this._getCurrentDataIndex(data, new Date());
 
@@ -1370,9 +1476,9 @@ class PriceTimelineCard extends LitElement {
         <ha-card>
                 <div>
                   <div @pointerup=${(ev) => this._onTap(ev)}>${cardContent}</div>
-                  ${this.config.cheap_times === true ? this._renderCheapTimes(dataIntervalls) : ""}
-                  ${this.config.day_switch && this.config.view !== "graph" ? this._renderToggler(lang) : ""}
-                  ${this.config.slider ? this._renderSlider(data, currentIndex) : ""}
+                  ${this.config.price_optimization?.cheap_times === true ? this._renderCheapTimes(dataIntervalls) : ""}
+                  ${this.config.navigation_settings?.day_switch && this.config.view !== "graph" ? this._renderToggler(lang) : ""}
+                  ${this.config.display_settings?.slider ? this._renderSlider(data, currentIndex) : ""}
                 </div>
            </ha-card>
          `;
@@ -1423,9 +1529,21 @@ class PriceTimelineEditor extends LitElement {
     this._config = {
       price: "",
       view: "timeline",
-      theme: "light",
-      slider: false,
-      day_switch: true,
+      currency: "",
+      display_settings: {
+        slider: false,
+      },
+      navigation_settings: {
+        day_switch: true,
+        start_view: "today",
+      },
+      price_optimization: {
+        cheap_times: false,
+      },
+      appearance_settings: {
+        theme: "light",
+        color_scheme: "default",
+      },
       ...config,
     };
   }
@@ -1437,9 +1555,15 @@ class PriceTimelineEditor extends LitElement {
   _valueChanged(ev) {
     if (!this._config || !this._hass) return;
     const newData = ev.detail.value;
+    
+    // Keep nested structure from expandable sections
     const newConfig = { ...this._config, ...newData };
-    newConfig.view = newData.view_mode;
-    delete newConfig.view_mode;
+    
+    // Convert view_mode from display_settings to top-level view
+    if (newData.display_settings?.view_mode) {
+      newConfig.view = newData.display_settings.view_mode;
+      delete newConfig.display_settings.view_mode;
+    }
 
     this._config = newConfig;
 
@@ -1460,75 +1584,121 @@ class PriceTimelineEditor extends LitElement {
     let mode = this._config.view;
 
     const schema = [
+      // Entity & Basic Settings
       { name: "price", selector: { entity: { domain: "sensor" } } },
       { name: "average", selector: { number: { min: 0, max: 2, step: 0.001, mode: "box" } } },
+      { name: "currency", selector: { text: {} } },
+      
+      // View & Display Settings
       {
-        name: "view_mode",
-        selector: {
-          select: {
-            mode: "dropdown",
-            options: [
-              { value: "timeline", label: "Timeline" },
-              { value: "circle", label: "Circle" },
-              { value: "graph", label: "Graph" },
-            ],
+        name: "display_settings",
+        type: "expandable",
+        title: localize("editor_display_settings", lang),
+        icon: "mdi:monitor-eye",
+        schema: [
+          {
+            name: "view_mode",
+            selector: {
+              select: {
+                mode: "dropdown",
+                options: [
+                  { value: "timeline", label: "Timeline" },
+                  { value: "circle", label: "Circle" },
+                  { value: "graph", label: "Graph" },
+                ],
+              },
+            },
           },
-        },
+          { name: "slider", selector: { boolean: {} } },
+        ],
       },
-      { name: "slider", selector: { boolean: {} } },
-      { name: "cheap_times", selector: { boolean: {} } },
+      
+      // Navigation Settings (only for timeline/circle)
+      ...(mode === "circle" || mode === "timeline" ? [{
+        name: "navigation_settings",
+        type: "expandable",
+        title: localize("editor_navigation_settings", lang),
+        icon: "mdi:navigation",
+        schema: [
+          { name: "day_switch", selector: { boolean: {} } },
+          {
+            name: "start_view",
+            selector: {
+              select: {
+                options: [
+                  { value: "today", label: localize("editor_start_today", lang) },
+                  { value: "tomorrow", label: localize("editor_start_tomorrow", lang) },
+                ],
+              },
+            },
+          },
+        ],
+      }] : []),
+      
+      // Price Optimization
+      {
+        name: "price_optimization",
+        type: "expandable",
+        title: localize("editor_price_optimization", lang),
+        icon: "mdi:cash-clock",
+        schema: [
+          { name: "cheap_times", selector: { boolean: {} } },
+        ],
+      },
+      
+      // Theme & Appearance
+      {
+        name: "appearance_settings",
+        type: "expandable",
+        title: localize("editor_appearance_settings", lang),
+        icon: "mdi:palette",
+        schema: [
+          {
+            name: "theme",
+            selector: {
+              select: {
+                options: [
+                  { value: "light", label: localize("editor_theme_light", lang) },
+                  { value: "dark", label: localize("editor_theme_dark", lang) },
+                  { value: "theme", label: localize("editor_theme_system", lang) },
+                ],
+              },
+            },
+          },
+          {
+            name: "color_scheme",
+            selector: {
+              select: {
+                options: Object.keys(PriceTimelineCard.colorSchemes).map(key => ({
+                  value: key,
+                  label: PriceTimelineCard.colorSchemes[key].name,
+                })),
+              },
+            },
+          },
+        ],
+      },
     ];
 
-    if (mode === "circle" || mode === "timeline") {
-      schema.push(
-        { name: "day_switch", selector: { boolean: {} } },
-        {
-          name: "start_view",
-          selector: {
-            select: {
-              options: [
-                { value: "today", label: localize("editor_start_today", lang) },
-                { value: "tomorrow", label: localize("editor_start_tomorrow", lang) },
-              ],
-            },
-          },
-        },
-
-      );
-    }
-
-    schema.push(
-      {
-        name: "theme",
-        selector: {
-          select: {
-            options: [
-              { value: "light", label: localize("editor_theme_light", lang) },
-              { value: "dark", label: localize("editor_theme_dark", lang) },
-              { value: "theme", label: localize("editor_theme_system", lang) },
-            ],
-          },
-        },
-      },
-      {
-        name: "currency",
-        selector: {
-          object: {
-            properties: {
-              name: { selector: { text: {} } },
-              symbol: { selector: { text: {} } },
-            },
-          },
-        },
-      }
-    );
-
+    // Structure data to match expandable sections
     const data = {
-      ...this._config,
-      view_mode: mode,
-      currency: {
-        name: this._config?.currency?.name || "",
-        symbol: this._config?.currency?.symbol || "",
+      price: this._config.price || "",
+      average: this._config.average,
+      currency: this._config.currency || "",
+      display_settings: {
+        view_mode: mode,
+        slider: this._config.display_settings?.slider ?? false,
+      },
+      navigation_settings: {
+        day_switch: this._config.navigation_settings?.day_switch ?? true,
+        start_view: this._config.navigation_settings?.start_view ?? "today",
+      },
+      price_optimization: {
+        cheap_times: this._config.price_optimization?.cheap_times ?? false,
+      },
+      appearance_settings: {
+        theme: this._config.appearance_settings?.theme ?? "light",
+        color_scheme: this._config.appearance_settings?.color_scheme ?? "default",
       },
     };
 
